@@ -1,4 +1,7 @@
-class Charger extends EventEmitter {
+import { EventEmitter } from "./EventEmitter.js";
+import { Event } from "./Event.js";
+
+export class Charger extends EventEmitter {
 
   constructor(id) {
     super(Event.EventType.Charger,id);

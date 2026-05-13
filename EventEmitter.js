@@ -1,4 +1,4 @@
-class EventEmitter{
+export class EventEmitter{
 
   constructor(eventEmitterType, id) {
     this.eventEmitterType = eventEmitterType

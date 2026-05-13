@@ -1,4 +1,7 @@
-class Drone extends EventEmitter {
+import { EventEmitter } from "./EventEmitter.js";
+import { Event } from "./Event.js";
+
+export class Drone extends EventEmitter {
   constructor(id, coolDownTime = 0 ,maxFlightTime=0) {
     super(Event.EventType.DRONE,id);
     this.coolDownTime = coolDownTime

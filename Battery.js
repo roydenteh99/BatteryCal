@@ -1,5 +1,7 @@
+import { EventEmitter } from "./EventEmitter.js";
+import { Event } from "./Event.js";
 
-class Battery extends EventEmitter {
+export class Battery extends EventEmitter {
 
   constructor(id, maxFlightTime, chargeTime, chargePercent, battSwapTime=0) {
     super(Event.EventType.BATTERY,id);

@@ -1,4 +1,4 @@
-class Event {
+export class Event {
 
 constructor(time, emitterId, eventName, eventType, addInfo = null) {
   this.time = time
