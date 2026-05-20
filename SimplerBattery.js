@@ -21,16 +21,12 @@ export class Battery extends EventEmitter {
     }
 
 
-
     getNextEvent(event){
         if (event.eventName == Battery.EventName.END_CHARGE) {
             return new Event (event.time + this.battSwapDuration ,this.id , Battery.EventName.END , Event.EventType.BATTERY) 
         } 
         
         if (event.eventName == Battery.EventName.END_USE ) {
-            this.useEvent = null
-            var duration = event.time - event.addInfo.timeStarted
-            this.chargePercent = Math.max(0, this.chargePercent - (duration / this.maxFlightTime) * 100)
             return new Event (event.time + this.battSwapDuration ,this.id , Battery.EventName.END , Event.EventType.BATTERY) 
         }
 
@@ -44,15 +40,18 @@ export class Battery extends EventEmitter {
                 return new Event (event.time ,this.id , Battery.EventName.BATT_SOURCE_CHARGER , Event.EventType.TRANSIT)
             }
         }
+
         return null
         }
 
-    createStartUseEvent(time, addInfo){
-        return new Event(time, this.id, Battery.EventName.START_USE, Event.EventType.BATTERY, addInfo);
+    createStartUseEvent(time){
+        this.batteryState = Battery.State.IN_USE
+        return new Event(time, this.id, Battery.EventName.START_USE, Event.EventType.BATTERY);
     }
 
-    createStartChargeEvent(time, addInfo){
-        return new Event(time, this.id, Battery.EventName.START_CHARGE, Event.EventType.BATTERY, addInfo);
+    createStartChargeEvent(time){
+        this.batteryState = Battery.State.CHARGING
+        return new Event(time, this.id, Battery.EventName.START_CHARGE, Event.EventType.BATTERY);
     }
 
     createEndChargeEvent(time , chargeDuration){ 
@@ -62,6 +61,7 @@ export class Battery extends EventEmitter {
     
     createEndUseEvent(time, useDuration){
         this.chargePercent = Math.max(0, this.chargePercent - (duration / this.chargeTime) *100 )
+        return new Event(time, this.id, Battery.EventName.END_USE, Event.EventType.BATTERY)
         
     }
 }

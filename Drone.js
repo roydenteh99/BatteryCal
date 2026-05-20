@@ -7,10 +7,13 @@ export class Drone extends EventEmitter {
     this.coolDownTime = coolDownTime
     this.flightTimeSinceCoolDown =  0
     this.maxFlightTime = maxFlightTime
+    this.batterySlot = null
   }
 
-  createStartEvent(time, addInfo){
-    return new Event (time, this.id, Drone.EventName.START, Event.EventType.DRONE, addInfo) 
+  createStartEvent(time){
+    var batteryEvent = this.batterySlot.createStartUseEvent(time)
+    var droneEvent = new Event (time, this.id, Drone.EventName.START, Event.EventType.DRONE, addInfo) 
+    return 
   }
 
   getNextEvent(event){
