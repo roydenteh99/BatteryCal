@@ -7,12 +7,16 @@ export class EventEmitter{
   }
 
   createStartEvent(currentTime, addInfo){
-    return null
+    return []
   }
 
 
   getNextEvent(event) {
-    return null
+    return []
+  }
+
+  getId() {
+    return this.id
   }
   
 }

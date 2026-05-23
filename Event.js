@@ -9,6 +9,29 @@ export class Event {
         this.eventType = eventType
         this.addInfo = addInfo
     }
+    getTime() {
+        return this.time
+    }
+
+    getEmitterId() {
+        return this.emitterId
+    }
+
+    getEventName() {
+        return this.eventName
+    }
+
+    getEventType() {
+        return this.eventType
+    }
+    
+    getAddInfo() {
+        return this.addInfo
+    }
+
+    getTimeDisplay() {
+        return this.time.toLocaleTimeString();
+    }
 
     changeTime(newTime) {
         if (newTime instanceof Date) {
@@ -19,6 +42,7 @@ export class Event {
     }
 
 }
+
 Event.EventType = Object.freeze({
   BATTERY: 0,
   DRONE: 1,

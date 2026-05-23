@@ -1,5 +1,6 @@
 import { EventEmitter } from "./EventEmitter.js";
 import { Event } from "./Event.js";
+import {addHours} from "./TimeFunction.js";
 
 export class Battery extends EventEmitter {
 
@@ -20,48 +21,52 @@ export class Battery extends EventEmitter {
         return (this.chargePercent / 100) * this.maxFlightTime;
     }
 
+    getChargeTimeTillFull() {
+        return ((100 - this.chargePercent) / 100) * this.chargeTime;
+    }
+
 
     getNextEvent(event){
         if (event.eventName == Battery.EventName.END_CHARGE) {
-            return new Event (event.time + this.battSwapDuration ,this.id , Battery.EventName.END , Event.EventType.BATTERY) 
+            return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.END , Event.EventType.BATTERY)]
         } 
         
         if (event.eventName == Battery.EventName.END_USE ) {
-            return new Event (event.time + this.battSwapDuration ,this.id , Battery.EventName.END , Event.EventType.BATTERY) 
+            return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.END , Event.EventType.BATTERY)]       
         }
 
         if (event.eventName == Battery.EventName.END){
             if (this.chargePercent > 0) {
                 this.batteryState = Battery.State.READY
-                return new Event (event.time ,this.id , Battery.EventName.BATT_SOURCE_DRONE , Event.EventType.TRANSIT)
+                return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.BATT_SOURCE_DRONE , Event.EventType.TRANSIT)]
             }
             else{
                 this.batteryState = Battery.State.FLAT
-                return new Event (event.time ,this.id , Battery.EventName.BATT_SOURCE_CHARGER , Event.EventType.TRANSIT)
+                return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.BATT_SOURCE_CHARGER , Event.EventType.TRANSIT)]
             }
         }
 
-        return null
+        return []
         }
 
     createStartUseEvent(time){
         this.batteryState = Battery.State.IN_USE
-        return new Event(time, this.id, Battery.EventName.START_USE, Event.EventType.BATTERY);
+        return [new Event(time, this.id, Battery.EventName.START_USE, Event.EventType.BATTERY)];
     }
 
     createStartChargeEvent(time){
         this.batteryState = Battery.State.CHARGING
-        return new Event(time, this.id, Battery.EventName.START_CHARGE, Event.EventType.BATTERY);
+        return [new Event(time, this.id, Battery.EventName.START_CHARGE, Event.EventType.BATTERY)];
     }
 
     createEndChargeEvent(time , chargeDuration){ 
-        this.chargePercent = Math.min(100, this.chargePercent + (duration / this.chargeTime) * 100)
-        return new Event(time, this.id, Battery.EventName.END_CHARGE, Event.EventType.BATTERY)
+        this.chargePercent = Math.min(100, this.chargePercent + (chargeDuration / this.chargeTime) * 100)
+        return [new Event(time, this.id, Battery.EventName.END_CHARGE, Event.EventType.BATTERY)]
         }
     
     createEndUseEvent(time, useDuration){
-        this.chargePercent = Math.max(0, this.chargePercent - (duration / this.chargeTime) *100 )
-        return new Event(time, this.id, Battery.EventName.END_USE, Event.EventType.BATTERY)
+        this.chargePercent = Math.max(0, this.chargePercent - (useDuration / this.chargeTime) *100 )
+        return [new Event(time, this.id, Battery.EventName.END_USE, Event.EventType.BATTERY)]
         
     }
 }
