@@ -11,7 +11,7 @@ test('Testing Battery Class get Properties and constructor', () => {
     assert.equal(battery.getId(), "battery1");
     
     // Initially, the battery is ready to be used thus the Ready state (hasn't been used yet)
-    assert.equal(battery.getBatteryState(), Battery.State.READY, "Expected battery state mismatch");
+    assert.equal(battery.getState(), Battery.State.READY, "Expected battery state mismatch");
     
     // The battery is at 50% charge, so it can only fly for half its max time (50% of 2 hours = 1 hour)
     assert.equal(battery.getAvailFlightTime(), 1, "Expected available flight time mismatch");
@@ -34,7 +34,7 @@ test('Testing Battery Class createStartUseEvent and createStartChargeEvent', () 
     assert.equal(startUseEvent.eventName, Battery.EventName.START_USE, "Expected start use event name mismatch");
     
     // The battery's state immediately changes from READY to IN_USE
-    assert.equal(battery.getBatteryState(), Battery.State.IN_USE, "Expected start use battery state mismatch");
+    assert.equal(battery.getState(), Battery.State.IN_USE, "Expected start use battery state mismatch");
     
     // An hour later, the drone lands and we plug the battery in to charge at 1 AM
     const startChargeEvent = battery.createStartChargeEvent(new Date(2026, 0, 1, 1, 0))[0];
@@ -45,7 +45,7 @@ test('Testing Battery Class createStartUseEvent and createStartChargeEvent', () 
     assert.equal(startChargeEvent.eventName, Battery.EventName.START_CHARGE, "Expected start charge event name mismatch");
     
     // The battery's state changes from IN_USE to CHARGING
-    assert.equal(battery.getBatteryState(), Battery.State.CHARGING, "Expected start charge battery state mismatch");
+    assert.equal(battery.getState(), Battery.State.CHARGING, "Expected start charge battery state mismatch");
 });
 
 test('Testing Battery Class getNextEvent for END_USE and END', () => {
@@ -70,7 +70,7 @@ test('Testing Battery Class getNextEvent for END_USE and END', () => {
     
     // When the swap/cleanup is done, the battery is officially FLAT (dead)
     battery.getNextEvent(endEvent);
-    assert.equal(battery.getBatteryState(), Battery.State.FLAT, "Expected battery state mismatch");
+    assert.equal(battery.getState(), Battery.State.FLAT, "Expected battery state mismatch");
 
 });
 
@@ -78,7 +78,7 @@ test('Testing Battery Class getNextEvent for END_CHARGE and END', () => {
     // A battery starts at 50% charge and needs 1 hour to fully charge from empty
     const battery = new Battery("battery3", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50, battSwapDuration: 0.1 });
     
-    // We start charging at midnight, and it takes 50 minutes (half the charge time) to reach 100%
+    // We start charging at midnight, and it takes 30 minutes (half the charge time) to reach 100%
     const endChargeEvent = battery.createEndChargeEvent(new Date(2026, 0, 0, 0, 0), battery.getChargeTimeTillFull())[0];
     assert.equal(endChargeEvent.getTimeDisplay(), "12:00:00 AM", "Expected End Charge Event time mismatch");
     
@@ -96,7 +96,7 @@ test('Testing Battery Class getNextEvent for END_CHARGE and END', () => {
     
     // After the swapping is complete, the battery is back to READY status
     battery.getNextEvent(endEvent);
-    assert.equal(battery.getBatteryState(), Battery.State.READY, "Expected battery state mismatch");
+    assert.equal(battery.getState(), Battery.State.READY, "Expected battery state mismatch");
 });
 
 test('Testing getNextEvent receives an event that it does not handle, it should return an empty array ', () => {

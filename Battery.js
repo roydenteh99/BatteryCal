@@ -18,8 +18,6 @@ export class Battery extends EventEmitter {
         return this.batteryState;
     }
 
-
-
     getAvailFlightTime() {
         return (this.chargePercent / 100) * this.maxFlightTime;
     }

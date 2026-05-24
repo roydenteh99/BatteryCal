@@ -18,6 +18,10 @@ export class EventEmitter{
   getId() {
     return this.id
   }
+
+  getState() {
+    return null
+  }
   
 }
 

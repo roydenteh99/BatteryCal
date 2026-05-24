@@ -13,7 +13,7 @@ export class Battery extends EventEmitter {
         this.batteryState = Battery.State.READY
         }
 
-    getBatteryState() {
+    getState() {
         return this.batteryState;
     }
 
@@ -27,15 +27,16 @@ export class Battery extends EventEmitter {
 
 
     getNextEvent(event){
-        if (event.eventName == Battery.EventName.END_CHARGE) {
-            return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.END , Event.EventType.BATTERY)]
-        } 
-        
-        if (event.eventName == Battery.EventName.END_USE ) {
-            return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.END , Event.EventType.BATTERY)]       
-        }
+        switch (event.eventName) {
 
-        if (event.eventName == Battery.EventName.END){
+        case Battery.EventName.END_CHARGE:
+            return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.END , Event.EventType.BATTERY)];
+        
+        case Battery.EventName.END_USE:
+            return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.END , Event.EventType.BATTERY)]       
+            
+
+        case Battery.EventName.END:
             if (this.chargePercent > 0) {
                 this.batteryState = Battery.State.READY
                 return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.BATT_SOURCE_DRONE , Event.EventType.TRANSIT)]
@@ -44,9 +45,11 @@ export class Battery extends EventEmitter {
                 this.batteryState = Battery.State.FLAT
                 return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.BATT_SOURCE_CHARGER , Event.EventType.TRANSIT)]
             }
+            
+        default:
+            return []
         }
 
-        return []
         }
 
     createStartUseEvent(time){

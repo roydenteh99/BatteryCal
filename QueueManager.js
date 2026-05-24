@@ -24,3 +24,14 @@ class EventQueue {
     }));
   }
 }
+
+// to sort events by time and then by type battery,drone,charger event to precede traansit events
+function sortEvents(events) {
+  const eventTypePriority = { [Event.EventType.BATTERY]: 1, [Event.EventType.DRONE]: 1, [Event.EventType.CHARGER]: 1, [Event.EventType.TRANSIT]: 2 };
+  return events.sort((a, b) => {
+    if (a.time.getTime() === b.time.getTime()) {
+      return eventTypePriority[a.eventType] - eventTypePriority[b.eventType];
+    }
+    return a.time.getTime() - b.time.getTime();
+  });
+} 
