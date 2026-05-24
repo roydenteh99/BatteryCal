@@ -20,6 +20,10 @@ export class Drone extends EventEmitter {
     return this.droneState === Drone.DroneState.READY;
   }
 
+  getFlightTimeSinceCoolDown() {
+    return this.flightTimeSinceCoolDown;
+  }
+
   removeBattery() {
     this.batterySlot = null
   } 
@@ -75,7 +79,7 @@ export class Drone extends EventEmitter {
 
 Drone.EventName = Object.freeze({
   START_FLIGHT : "Start Flight",
-  END_FLIGHT : "End flight",
+  END_FLIGHT : "End Flight",
   END : "End",
   START_COOL : "Start Cool",
   END_COOL : "End Cool",
