@@ -1,8 +1,9 @@
 
 
 function addHours(date,hours) {
-    date.setMinutes(date.getMinutes() + hours * 60)
-    return date
+    const newDate = new Date(date.getTime());
+    newDate.setMinutes(newDate.getMinutes() + hours * 60);
+    return newDate;
 }
 
 function getTimeDiffInHours(date1, date2) {

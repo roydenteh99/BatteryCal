@@ -12,14 +12,6 @@ export class Charger extends EventEmitter {
     this.endChargeEvent = null;
   }
 
-  prematureEndCharge(time) {
-    if (this.endChargeEvent) {
-      this.endChargeEvent.changeTime(time);
-    }
-    else{
-      throw new Error("No ongoing charge to end prematurely.");
-    }
-  }
 
   checkAvail(){
     return this.chargerState === Charger.State.READY;
@@ -34,9 +26,19 @@ export class Charger extends EventEmitter {
   }
 
   
+  prematureEndCharge(time) {
+    if (this.endChargeEvent) {
+      this.endChargeEvent.changeTime(time);
+    } else{
+      throw new Error("No ongoing charge to end prematurely.");
+    }
+  }
+
+  
   createStartEvent(time, {battery, duration}) {
-    const batteryEvent = this.batterySlot.createStartChargeEvent(time, {duration});
+    const batteryEvent = battery.createStartChargeEvent(time);
     const chargerEvent = new Event(time, this.id, Charger.EventName.START, Event.EventType.Charger, {duration});
+    
     this.batterySlot = battery;
     this.chargerState = Charger.State.NOT_READY;
     return [chargerEvent].concat(batteryEvent);
@@ -49,13 +51,13 @@ export class Charger extends EventEmitter {
       case Charger.EventName.START:
         const startTime = event.time;
         const endTime = addHours(event.time, duration);
-        this.endChargeEvent = new Event(endTime, this.id, Charger.EventName.END, Event.EventType.Charger, {startTime})
+        this.endChargeEvent = new Event(endTime, this.id, Charger.EventName.END, Event.EventType.Charger, {"startChargeTime": startTime});
         return [this.endChargeEvent]
       
       case Charger.EventName.END:
         
-        const {startTime} = event.addInfo || {};
-        const chargeDuration = getTimeDiffInHours(startTime, event.time);
+        const {startChargeTime} = event.addInfo || {};
+        const chargeDuration = getTimeDiffInHours(startChargeTime, event.time);
         this.chargerState = Charger.State.READY;
         const batteryEvent = this.batterySlot.createEndChargeEvent(event.time, chargeDuration);
         return [new Event (event.time, this.id, Charger.EventName.CHARGER_SOURCE_BATT, Event.EventType.TRANSIT)].concat(batteryEvent); 

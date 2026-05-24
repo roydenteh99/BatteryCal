@@ -4,8 +4,6 @@ import assert from 'node:assert';
 
 test('Event initialization', () => {
     const additionalInfo = { timeTaken: 2 };
-
-
     const initialEvent = new Event("2026-01-01 09:00", "blank", "nothing", Event.EventType.TRANSIT, additionalInfo);
         assert.strictEqual(initialEvent.emitterId, "blank");
         assert.strictEqual(initialEvent.eventName, "nothing");
