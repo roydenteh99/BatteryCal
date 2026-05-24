@@ -1,6 +1,7 @@
 import { EventEmitter } from "./EventEmitter.js";
 import { Event } from "./Event.js";
 import {addHours} from "./TimeFunction.js";
+import {Battery} from "./SimplerBattery.js";
 
 export class Drone extends EventEmitter {
   constructor(id, {coolDownTime = 0 ,maxFlightTime = null}) {
@@ -9,7 +10,7 @@ export class Drone extends EventEmitter {
     this.maxFlightTime = maxFlightTime
     this.flightTimeSinceCoolDown =  0
     this.batterySlot = null
-    this.droneState = Drone.DroneState.READY
+    this.droneState = Drone.State.READY
   }
 
   getState() {
@@ -17,7 +18,7 @@ export class Drone extends EventEmitter {
   }
 
   checkAvail() {
-    return this.droneState === Drone.DroneState.READY;
+    return this.droneState === Drone.State.READY;
   }
 
   getFlightTimeSinceCoolDown() {
@@ -30,8 +31,9 @@ export class Drone extends EventEmitter {
 
   createStartEvent(time , {battery, duration}) {
     this.batterySlot = battery
-    var batteryEvent = this.batterySlot.createStartUseEvent(time)
-    var droneEvent = new Event (time, this.id, Drone.EventName.START_FLIGHT, Event.EventType.DRONE, {"duration": duration}) 
+    const batteryEvent = this.batterySlot.createStartUseEvent(time)
+    const droneEvent = new Event (time, this.id, Drone.EventName.START_FLIGHT, Event.EventType.DRONE, {"duration": duration})
+    this.droneState = Drone.State.IN_USE 
     return [droneEvent].concat(batteryEvent)
   }
 
@@ -41,7 +43,6 @@ export class Drone extends EventEmitter {
       
       case Drone.EventName.START_FLIGHT:
         const endTime = addHours(event.time, duration);
-        this.droneState = Drone.DroneState.IN_USE
         return [new Event (endTime, this.id, Drone.EventName.END_FLIGHT , Event.EventType.DRONE, event.addInfo)]
       
       case Drone.EventName.END_FLIGHT:
@@ -57,17 +58,18 @@ export class Drone extends EventEmitter {
         }
         
       case Drone.EventName.START_COOL:
-        this.droneState = Drone.DroneState.COOLING_DOWN
+        this.droneState = Drone.State.COOLING_DOWN
         const endCoolEvent = new Event (addHours(event.time, this.coolDownTime), this.id, Drone.EventName.END_COOL , Event.EventType.DRONE)
         return [endCoolEvent]
     
       case Drone.EventName.END_COOL:
-        this.droneState = Drone.DroneState.READY
+        
         this.flightTimeSinceCoolDown = 0
         const endEvent = new Event (event.time, this.id, Drone.EventName.END , Event.EventType.DRONE)
         return [endEvent]
       
       case Drone.EventName.END:
+        this.droneState = Drone.State.READY
         const batterySourceEvent = new Event (event.time, this.id, Drone.EventName.DRONE_SOURCE_BATT , Event.EventType.TRANSIT)
         return [batterySourceEvent]
       
@@ -86,7 +88,7 @@ Drone.EventName = Object.freeze({
   DRONE_SOURCE_BATT : "DRONE_SOURCE_BATT"
 });
 
-Drone.DroneState = Object.freeze({
+Drone.State = Object.freeze({
     READY : 2,
     IN_USE : 1,
     COOLING_DOWN : 0
