@@ -37,7 +37,7 @@ test('Testing Charger Class createStartEvent', () => {
     const chargerStartEvent = startEvents[0];
     assert.equal(chargerStartEvent.emitterId, "charger2");
     assert.equal(chargerStartEvent.eventName, "Start Charge", "Expected charger start event name mismatch");
-    assert.equal(chargerStartEvent.eventType, Event.EventType.Charger, "Expected event type mismatch");
+    assert.equal(chargerStartEvent.eventType, Event.EventType.CHARGER, "Expected event type mismatch");
     
     // After starting, the battery should be installed in the charger's battery slot
     assert.equal(charger.batterySlot, battery, "Expected battery to be installed in charger");
@@ -107,47 +107,48 @@ test('Testing Charger Class prematureEndCharge', () => {
     assert.equal(charger.endChargeEvent.getTimeDisplay(), "12:30:00 AM", "Expected premature end charge time mismatch");
 });
 
-// test('Testing Charger Class removeBattery', () => {
-//     // Set up a charger with a battery installed
-//     const charger = new Charger("charger5");
-//     const battery = new Battery("battery4", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50, battSwapDuration: 0.1 });
-    
-//     // Install the battery by starting a charge
-//     charger.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery, duration: 0.5 });
-//     assert.equal(charger.batterySlot, battery, "Expected battery to be installed");
-    
-//     // After removing the battery from the charger, the battery slot should be empty
-//     charger.removeBattery();
-//     assert.equal(charger.batterySlot, null, "Expected battery slot to be null after removal");
-// });
 
-// test('Testing Charger Class with multiple charge cycles', () => {
-//     // Set up a charger that will handle multiple batteries in sequence
-//     const charger = new Charger("charger6");
-//     const battery1 = new Battery("battery5", { maxFlightTime: 1, chargeTime: 0.5, chargePercent: 0, battSwapDuration: 0.1 });
-//     const battery2 = new Battery("battery6", { maxFlightTime: 1, chargeTime: 0.5, chargePercent: 0, battSwapDuration: 0.1 });
+test('Testing Charger Class with multiple charge cycles', () => {
+    // Set up a charger that will handle multiple batteries in sequence
+    let eventlist = [];
+    const charger = new Charger("charger6");
+    const battery1 = new Battery("battery5", { maxFlightTime: 1, chargeTime: 0.5, chargePercent: 0, battSwapDuration: 0.1 });
+    let iteration_limit = 10;
+    // First charge cycle: charge battery1 for 15 minutes starting at midnight
+    const startEvents1 = charger.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery: battery1, duration: 0.25 });
+    console.log("Start Events for Battery 1:", startEvents1);
+    eventlist.push(...startEvents1);
+
+    function processNextEventProto(event) {
+        let eventType = event.eventType;
+        console.log(`Processing event: ${event.eventName} from ${event.emitterId} at ${event.getTimeDisplay()} of type ${eventType}`);
+        if (eventType === Event.EventType.Charger) {
+            const nextEvents = charger.getNextEvent(event);
+            return nextEvents;
+        } else if (eventType === Event.EventType.BATTERY) {
+            const nextEvents = battery1.getNextEvent(event);
+            return nextEvents;
+        }
+    }
+
+    function sortEvents(events) {
+        const eventTypePriority = { [Event.EventType.BATTERY]: 1, [Event.EventType.DRONE]: 1, [Event.EventType.CHARGER]: 1, [Event.EventType.TRANSIT]: 2 };
+        return events.sort((a, b) => {
+            if (a.time.getTime() === b.time.getTime()) {
+                return eventTypePriority[a.eventType] - eventTypePriority[b.eventType];
+            }
+            return a.time.getTime() - b.time.getTime();
+        });
+    } 
     
-//     // First charge cycle: charge battery1 for 15 minutes starting at midnight
-//     const startEvents1 = charger.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery: battery1, duration: 0.25 });
-//     assert.equal(charger.batterySlot, battery1, "Expected battery1 to be in charger");
-    
-//     // Process the start event to generate the end event
-//     const endEvents1 = charger.getNextEvent(startEvents1[0]);
-    
-//     // Remove battery1 and process the end event
-//     charger.removeBattery();
-//     charger.getNextEvent(endEvents1[0]);
-    
-//     // Charger should be READY again after first cycle completes
-//     assert.equal(charger.getState(), Charger.State.READY, "Expected charger to be READY between cycles");
-    
-//     // Second charge cycle: charge battery2 starting at 12:30 AM
-//     const startEvents2 = charger.createStartEvent(new Date(2026, 0, 1, 0, 30), { battery: battery2, duration: 0.25 });
-//     assert.equal(charger.batterySlot, battery2, "Expected battery2 to be in charger");
-    
-//     // Charger should be NOT_READY during second charge
-//     assert.equal(charger.getState(), Charger.State.NOT_READY, "Expected charger to be NOT_READY during second cycle");
-// });
+    while (eventlist.length > 0 && iteration_limit > 0) {
+        iteration_limit--;
+        // Process the start event to generate the end event
+        const nextEvents = processNextEventProto(sortEvents(eventlist).shift());
+        eventlist.push(...nextEvents);
+    }
+
+});
 
 // Command to run single test: node --test Charger.test.js
 // Command to run all tests: node --test

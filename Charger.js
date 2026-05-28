@@ -6,7 +6,7 @@ import {Battery} from "./SimplerBattery.js";
 export class Charger extends EventEmitter {
 
   constructor(id) {
-    super(Event.EventType.Charger, id);
+    super(Event.EventType.CHARGER, id);
     this.chargerState = Charger.State.READY;
     this.batterySlot = null;
     this.endChargeEvent = null;
@@ -37,7 +37,7 @@ export class Charger extends EventEmitter {
   
   createStartEvent(time, {battery, duration}) {
     const batteryEvent = battery.createStartChargeEvent(time);
-    const chargerEvent = new Event(time, this.id, Charger.EventName.START, Event.EventType.Charger, {duration});
+    const chargerEvent = new Event(time, this.id, Charger.EventName.START, Event.EventType.CHARGER, {duration});
     
     this.batterySlot = battery;
     this.chargerState = Charger.State.NOT_READY;
@@ -51,7 +51,7 @@ export class Charger extends EventEmitter {
       case Charger.EventName.START:
         const startTime = event.time;
         const endTime = addHours(event.time, duration);
-        this.endChargeEvent = new Event(endTime, this.id, Charger.EventName.END, Event.EventType.Charger, {"startChargeTime": startTime});
+        this.endChargeEvent = new Event(endTime, this.id, Charger.EventName.END, Event.EventType.CHARGER, {"startChargeTime": startTime});
         return [this.endChargeEvent]
       
       case Charger.EventName.END:
