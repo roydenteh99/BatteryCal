@@ -62,7 +62,7 @@ test('Testing Battery Class getNextEvent for END_USE and END', () => {
     const endEvent = nextEvents[0];
     
     // The swapping takes 6 minutes (battSwapDuration of 0.1 hours), so it finishes at 12:06 AM
-    assert.equal(endEvent.getTimeDisplay(), "12:06:00 AM", "Expected End Event time mismatch");
+    assert.equal(endEvent.getTimeDisplay(), new Date(2026, 0, 0, 0, 0).toLocaleTimeString(), "Expected End Event time mismatch");
     
     // After using the battery for 1 hour at 50% charge (which is its max available time), it's completely drained
     assert.equal(battery.getAvailFlightTime(), 0 , "Expected available flight time mismatch");
@@ -80,15 +80,15 @@ test('Testing Battery Class getNextEvent for END_CHARGE and END', () => {
     
     // We start charging at midnight, and it takes 30 minutes (half the charge time) to reach 100%
     const endChargeEvent = battery.createEndChargeEvent(new Date(2026, 0, 0, 0, 0), battery.getChargeTimeTillFull())[0];
-    assert.equal(endChargeEvent.getTimeDisplay(), "12:00:00 AM", "Expected End Charge Event time mismatch");
+    assert.equal(endChargeEvent.getTimeDisplay(), new Date(2026, 0, 0, 0, 0).toLocaleTimeString(), "Expected End Charge Event time mismatch");
     
     // After charging is complete, there's one more event: the battery swap/cleanup
     const nextEvents = battery.getNextEvent(endChargeEvent);
     assert.equal(nextEvents.length, 1);
     const endEvent = nextEvents[0];
     
-    // The swapping takes 6 minutes (battSwapDuration of 0.1 hours), finishing at 12:06 AM
-    assert.equal(endEvent.getTimeDisplay(), "12:06:00 AM", "Expected End Event time mismatch");
+    // The swapping time to be read and handled by battery handler
+    assert.equal(endEvent.getTimeDisplay(), new Date(2026, 0, 0, 0, 0).toLocaleTimeString(), "Expected End Event time mismatch");
     
     // Now fully charged, the battery can fly for its entire 2-hour maximum
     assert.equal(battery.getAvailFlightTime(), 2 , "Expected available flight time mismatch");
@@ -109,5 +109,5 @@ test('Testing getNextEvent receives an event that it does not handle, it should 
     assert.deepStrictEqual(eventList, [], "Expected getNextEvent to return an empty array for unhandled events");
 });
 
-// Command to run single test: node --test testTemplate.test.js
+// Command to run single test: node --test SimplerBattery.test.js
 // Command to run all tests: node --test

@@ -17,6 +17,10 @@ export class Battery extends EventEmitter {
         return this.batteryState;
     }
 
+    getBatterySwapDuration() {
+        return this.battSwapDuration
+    }
+
     getAvailFlightTime() {
         return (this.chargePercent / 100) * this.maxFlightTime;
     }
@@ -30,10 +34,10 @@ export class Battery extends EventEmitter {
         switch (event.eventName) {
 
         case Battery.EventName.END_CHARGE:
-            return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.END , Event.EventType.BATTERY)];
+            return [new Event (event.time ,this.id , Battery.EventName.END , Event.EventType.BATTERY)];
         
         case Battery.EventName.END_USE:
-            return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.END , Event.EventType.BATTERY)]       
+            return [new Event (event.time ,this.id , Battery.EventName.END , Event.EventType.BATTERY)]       
             
 
         case Battery.EventName.END:
