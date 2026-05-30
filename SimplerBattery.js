@@ -39,11 +39,11 @@ export class Battery extends EventEmitter {
         case Battery.EventName.END:
             if (this.chargePercent > 0) {
                 this.batteryState = Battery.State.READY
-                return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.BATT_SOURCE_DRONE , Event.EventType.TRANSIT)]
+                return [new Event (event.time ,this.id , Battery.EventName.BATT_SOURCE_DRONE , Event.EventType.TRANSIT)]
             }
             else{
                 this.batteryState = Battery.State.FLAT
-                return [new Event (addHours(event.time, this.battSwapDuration) ,this.id , Battery.EventName.BATT_SOURCE_CHARGER , Event.EventType.TRANSIT)]
+                return [new Event (event.time, this.id , Battery.EventName.BATT_SOURCE_CHARGER , Event.EventType.TRANSIT)]
             }
             
         default:
