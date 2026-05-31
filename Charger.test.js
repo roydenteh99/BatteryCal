@@ -24,7 +24,7 @@ test('Testing Charger Class get properties and constructor', () => {
 test('Testing Charger Class createStartEvent', () => {
     // Set up a charger and a battery ready to be charged
     const charger = new Charger("charger2");
-    const battery = new Battery("battery1", { maxFlightTime: 2, chargeTime: 1, chargePercent: 0, battSwapDuration: 0.1 });
+    const battery = new Battery("battery1", { maxFlightTime: 2, chargeTime: 1, chargePercent: 0 });
     // When the charger starts charging a battery, it creates events at midnight
     // Duration is set to 0.5 hours (30 minutes) to charge the battery partway
     const startEvents = charger.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery, duration: 0.5 });
@@ -53,7 +53,7 @@ test('Testing Charger Class createStartEvent', () => {
 test('Testing Charger Class getNextEvent for START to END charge', () => {
     // Set up a charger with a dead battery that needs 1 hour to fully charge
     const charger = new Charger("charger3");
-    const battery = new Battery("battery2", { maxFlightTime: 2, chargeTime: 1, chargePercent: 0, battSwapDuration: 0.1 });
+    const battery = new Battery("battery2", { maxFlightTime: 2, chargeTime: 1, chargePercent: 0});
     // Begin charging at midnight for 30 minutes (0.5 hours)
     const startEvents = charger.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery, duration: 0.5 });
     const chargerStartEvent = startEvents[0];
@@ -113,16 +113,14 @@ test('Testing Charger Class and Battery Class in one full cycle', () => {
     let checklist = [];
     let eventlist = [];
 
-    const expectedList = [
-        [ 'Start Charge', new Date('2025-12-31T16:00:00.000Z') ],
-        [ 'Start Charge', new Date('2025-12-31T16:00:00.000Z') ],
-        [ 'End Charge', new Date('2025-12-31T16:15:00.000Z') ],
-        [ 'End Charge', new Date('2025-12-31T16:15:00.000Z') ],
-        [ 'CHARGER_SOURCE_BATT', new Date('2025-12-31T16:15:00.000Z') ],
-        [ 'End', new Date('2025-12-31T16:21:00.000Z') ],
-        [ 'BATT_SOURCE_DRONE', new Date('2025-12-31T16:21:00.000Z') ]
-    ];
-
+    const expectedList =[ 
+        [ 'Start Charge', new Date("2025-12-31T16:00:00.000Z"), 'battery5' ], 
+        [ 'Start Charge', new Date("2025-12-31T16:00:00.000Z"), 'charger6' ], 
+        [ 'End Charge', new Date("2025-12-31T16:15:00.000Z"), 'charger6' ], 
+        [ 'End Charge', new Date("2025-12-31T16:15:00.000Z"), 'battery5' ], 
+        [ 'End', new Date("2025-12-31T16:15:00.000Z"), 'battery5' ], 
+        [ 'CHARGER_SOURCE_BATT', new Date("2025-12-31T16:15:00.000Z"), 'charger6' ], 
+        [ 'BATT_SOURCE_DRONE', new Date("2025-12-31T16:15:00.000Z"), 'battery5' ] ]
 
 
     const charger = new Charger("charger6");
@@ -146,7 +144,7 @@ test('Testing Charger Class and Battery Class in one full cycle', () => {
     }
 
     function sortEvents(events) {
-        const eventTypePriority = { [Event.EventType.BATTERY]: 1, [Event.EventType.DRONE]: 1, [Event.EventType.CHARGER]: 1, [Event.EventType.TRANSIT]: 2 };
+        const eventTypePriority = { [Event.EventType.BATTERY]: 1, [Event.EventType.DRONE]: 2, [Event.EventType.CHARGER]: 2, [Event.EventType.TRANSIT]: 3 };
         return events.sort((a, b) => {
             if (a.time.getTime() === b.time.getTime()) {
                 return eventTypePriority[a.eventType] - eventTypePriority[b.eventType];
@@ -159,7 +157,7 @@ test('Testing Charger Class and Battery Class in one full cycle', () => {
         iteration_limit--;
         // Process the start event to generate the end event
         let eventTobeProcessed = sortEvents(eventlist).shift()
-        checklist.push([eventTobeProcessed.getEventName(),eventTobeProcessed.getTime()])
+        checklist.push([eventTobeProcessed.getEventName(),eventTobeProcessed.getTime(),eventTobeProcessed.getEmitterId()])
         const nextEvents = processNextEventProto(eventTobeProcessed);
         if (nextEvents.length > 0) {
             eventlist.push(...nextEvents);

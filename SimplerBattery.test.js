@@ -5,7 +5,7 @@ import { Event } from './Event.js';
 
 test('Testing Battery Class get Properties and constructor', () => {
     // A new battery is created with some specifications
-    const battery = new Battery("battery1", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50, battSwapDuration: 0.5 }); // id, maxFlightTime, chargeTime, chargePercent, battSwapDuration
+    const battery = new Battery("battery1", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50 }); // id, maxFlightTime, chargeTime, chargePercent, battSwapDuration
     
     // The battery should remember its ID
     assert.equal(battery.getId(), "battery1");
@@ -21,7 +21,7 @@ test('Testing Battery Class get Properties and constructor', () => {
 
 test('Testing Battery Class createStartUseEvent and createStartChargeEvent', () => {
     // Start with a fresh battery at 50% charge
-    const battery = new Battery("battery2", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50, battSwapDuration: 0.5 });
+    const battery = new Battery("battery2", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50 });
     
     // The drone is launched at midnight, battery starts being used
     // Arbitrarily the tim is set to January 1, 2026, 00:00 for consistency in testing
@@ -50,7 +50,7 @@ test('Testing Battery Class createStartUseEvent and createStartChargeEvent', () 
 
 test('Testing Battery Class getNextEvent for END_USE and END', () => {
     // A battery starts at 50% charge and can fly for 2 hours when fully charged
-    const battery = new Battery("battery2", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50, battSwapDuration: 0.1 });
+    const battery = new Battery("battery2", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50 });
     
     // The drone flies for exactly 1 hour and then stops at midnight
     const endUseEvent = battery.createEndUseEvent(new Date(2026, 0, 0, 0, 0), battery.getAvailFlightTime())[0]; // useDuration of 1 hour
@@ -76,7 +76,7 @@ test('Testing Battery Class getNextEvent for END_USE and END', () => {
 
 test('Testing Battery Class getNextEvent for END_CHARGE and END', () => {
     // A battery starts at 50% charge and needs 1 hour to fully charge from empty
-    const battery = new Battery("battery3", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50, battSwapDuration: 0.1 });
+    const battery = new Battery("battery3", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50 });
     
     // We start charging at midnight, and it takes 30 minutes (half the charge time) to reach 100%
     const endChargeEvent = battery.createEndChargeEvent(new Date(2026, 0, 0, 0, 0), battery.getChargeTimeTillFull())[0];
@@ -100,7 +100,7 @@ test('Testing Battery Class getNextEvent for END_CHARGE and END', () => {
 });
 
 test('Testing getNextEvent receives an event that it does not handle, it should return an empty array ', () => {
-    const battery = new Battery("battery4", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50, battSwapDuration: 0.1 }); 
+    const battery = new Battery("battery4", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50 }); 
     
     // The drone is launched at midnight, battery starts being used
     // Arbitrarily the tim is set to January 1, 2026, 00:00 for consistency in testing

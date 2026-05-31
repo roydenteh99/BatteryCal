@@ -4,12 +4,11 @@ import {addHours} from "./TimeFunction.js";
 
 export class Battery extends EventEmitter {
 
-    constructor(id, {maxFlightTime, chargeTime, chargePercent = 100 , battSwapDuration = 0}) {
+    constructor(id, {maxFlightTime, chargeTime, chargePercent = 100}) {
         super(Event.EventType.BATTERY, id);
         this.maxFlightTime = maxFlightTime
         this.chargeTime = chargeTime
         this.chargePercent = chargePercent
-        this.battSwapDuration = battSwapDuration
         this.batteryState = Battery.State.READY
         }
 
@@ -17,9 +16,6 @@ export class Battery extends EventEmitter {
         return this.batteryState;
     }
 
-    getBatterySwapDuration() {
-        return this.battSwapDuration
-    }
 
     getAvailFlightTime() {
         return (this.chargePercent / 100) * this.maxFlightTime;

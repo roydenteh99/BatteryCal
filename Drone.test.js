@@ -52,7 +52,10 @@ test('Testing Drone Class getNextEvent for START_FLIGHT -> END_FLIGHT -> START_C
     const sortedmapStartEvents = startEvents.map(event => { return  event.getTimeDisplay() + "-" + event.eventName ; }).sort((a,b) => a.localeCompare(b));
     
     // Both events should occur at exactly 12:00:00 AM: one for starting the flight, one for battery usage
-    assert.deepStrictEqual(sortedmapStartEvents, ["12:00:00 AM-Start Flight", "12:00:00 AM-Start Use"], "Expected start events mismatch");
+    assert.deepStrictEqual(sortedmapStartEvents, [
+        new Date(2026, 0, 1, 0, 0).toLocaleTimeString() + "-Start Flight", 
+        new Date(2026, 0, 1, 0, 0).toLocaleTimeString() + "-Start Use"
+        ], "Expected start events mismatch");
     
     // Process the "Start Flight" event to generate the "End Flight" event after 1 hour of flying
     const endFlightEvent = drone.getNextEvent(startEvents.find(event => event.eventName === "Start Flight"))[0];
@@ -61,7 +64,7 @@ test('Testing Drone Class getNextEvent for START_FLIGHT -> END_FLIGHT -> START_C
     // Before the flight ends, the drone has not accumulated any cool down time
     assert.equal(drone.getFlightTimeSinceCoolDown(), 0, "Expected flight time since cool down to be 0 before processing End Flight event");
     assert.equal(endFlightEvent.eventName, "End Flight", "Expected End Flight event name mismatch");
-    assert.equal(endFlightEvent.getTimeDisplay(), "1:00:00 AM", "Expected End Flight event time mismatch");
+    assert.equal(endFlightEvent.getTimeDisplay(), new Date(2026, 0, 1, 1, 0).toLocaleTimeString(), "Expected End Flight event time mismatch");
 
     // When the flight ends, the drone needs to cool down
     const nextEvents = drone.getNextEvent(endFlightEvent);
@@ -82,7 +85,7 @@ test('Testing Drone Class getNextEvent for START_FLIGHT -> END_FLIGHT -> START_C
     // After cool down starts, it eventually ends (cool down duration is 0.1 hours = 6 minutes)
     const endCoolEvent = drone.getNextEvent(coolDownEvent)[0];
     assert.equal(drone.getState(), Drone.State.COOLING_DOWN, "Expected drone state to be COOLING_DOWN after processing Start Cool event");
-    assert.equal(endCoolEvent.getTimeDisplay(), "1:06:00 AM", "Expected End Cool event time mismatch");
+    assert.equal(endCoolEvent.getTimeDisplay(), new Date(2026, 0, 1, 1, 6).toLocaleTimeString(), "Expected End Cool event time mismatch");
     assert.equal(endCoolEvent.eventName, "End Cool", "Expected End Cool event name mismatch");
 
     // After cool down ends, a final "End" event marks the completion of the entire flight cycle
