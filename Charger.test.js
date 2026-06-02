@@ -65,7 +65,7 @@ test('Testing Charger Class getNextEvent for START to END charge', () => {
     // The end charge event should be scheduled for 30 minutes later (12:30 AM)
     const endChargeEvent = endChargeEvents[0];
     assert.equal(endChargeEvent.eventName, "End Charge", "Expected end charge event name mismatch");
-    assert.equal(endChargeEvent.getTimeDisplay(), "12:30:00 AM", "Expected end charge event time mismatch");
+    assert.equal(endChargeEvent.getTimeDisplay(), new Date(2026, 0, 1, 0, 30).toLocaleTimeString(), "Expected end charge event time mismatch");
     assert.equal(endChargeEvent.emitterId, "charger3", "Expected end charge event emitter mismatch");
     
     // Before the charging ends, the charger is still NOT_READY
@@ -104,31 +104,45 @@ test('Testing Charger Class prematureEndCharge', () => {
     charger.prematureEndCharge(newEndTime);
     
     // The end charge event should now be scheduled for 12:30 AM instead of 1 AM
-    assert.equal(charger.endChargeEvent.getTimeDisplay(), "12:30:00 AM", "Expected premature end charge time mismatch");
+    assert.equal(charger.endChargeEvent.getTimeDisplay(), newEndTime.toLocaleTimeString(), "Expected premature end charge time mismatch");
 });
 
 
-test('Testing Charger Class with multiple charge cycles', () => {
-    // Set up a charger that will handle multiple batteries in sequence
+test('Testing Charger Class and Battery Class in one full cycle', () => {
+    // Set up a charger that will handle multiple batteries in 
+    let checklist = [];
     let eventlist = [];
+
+    const expectedList = [
+        [ 'Start Charge', new Date('2025-12-31T16:00:00.000Z') ],
+        [ 'Start Charge', new Date('2025-12-31T16:00:00.000Z') ],
+        [ 'End Charge', new Date('2025-12-31T16:15:00.000Z') ],
+        [ 'End Charge', new Date('2025-12-31T16:15:00.000Z') ],
+        [ 'CHARGER_SOURCE_BATT', new Date('2025-12-31T16:15:00.000Z') ],
+        [ 'End', new Date('2025-12-31T16:21:00.000Z') ],
+        [ 'BATT_SOURCE_DRONE', new Date('2025-12-31T16:21:00.000Z') ]
+    ];
+
+
+
     const charger = new Charger("charger6");
     const battery1 = new Battery("battery5", { maxFlightTime: 1, chargeTime: 0.5, chargePercent: 0, battSwapDuration: 0.1 });
     let iteration_limit = 10;
     // First charge cycle: charge battery1 for 15 minutes starting at midnight
     const startEvents1 = charger.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery: battery1, duration: 0.25 });
-    console.log("Start Events for Battery 1:", startEvents1);
     eventlist.push(...startEvents1);
 
     function processNextEventProto(event) {
         let eventType = event.eventType;
-        console.log(`Processing event: ${event.eventName} from ${event.emitterId} at ${event.getTimeDisplay()} of type ${eventType}`);
-        if (eventType === Event.EventType.Charger) {
+        if (eventType === Event.EventType.CHARGER) {
             const nextEvents = charger.getNextEvent(event);
             return nextEvents;
         } else if (eventType === Event.EventType.BATTERY) {
             const nextEvents = battery1.getNextEvent(event);
             return nextEvents;
+
         }
+        return [];
     }
 
     function sortEvents(events) {
@@ -144,12 +158,15 @@ test('Testing Charger Class with multiple charge cycles', () => {
     while (eventlist.length > 0 && iteration_limit > 0) {
         iteration_limit--;
         // Process the start event to generate the end event
-        const nextEvents = processNextEventProto(sortEvents(eventlist).shift());
-        console.log("next Events  :" ,nextEvents);
-        if (nextEvents.length >0) {
+        let eventTobeProcessed = sortEvents(eventlist).shift()
+        checklist.push([eventTobeProcessed.getEventName(),eventTobeProcessed.getTime()])
+        const nextEvents = processNextEventProto(eventTobeProcessed);
+        if (nextEvents.length > 0) {
             eventlist.push(...nextEvents);
         }
     }
+
+    assert.deepStrictEqual(checklist,expectedList)
 
 });
 
