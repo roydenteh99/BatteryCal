@@ -145,7 +145,10 @@ test('Testing Charger Class with multiple charge cycles', () => {
         iteration_limit--;
         // Process the start event to generate the end event
         const nextEvents = processNextEventProto(sortEvents(eventlist).shift());
-        eventlist.push(...nextEvents);
+        console.log("next Events  :" ,nextEvents);
+        if (nextEvents.length >0) {
+            eventlist.push(...nextEvents);
+        }
     }
 
 });
