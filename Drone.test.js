@@ -108,7 +108,7 @@ test('Testing Drone Class getNextEvent for START_FLIGHT -> END_FLIGHT -> START_C
 test('Testing Drone Class removeBattery', () => {
     // Set up a drone with a fully charged battery
     const drone = new Drone("drone9", { coolDownTime: 0.1, maxFlightTime: 1 });
-    const battery = new Battery("battery7", { maxFlightTime: 2, chargeTime: 1, chargePercent: 100, battSwapDuration: 0.5 });
+    const battery = new Battery("battery7", { maxFlightTime: 2, chargeTime: 1, chargePercent: 100});
     
     // When the drone starts a flight, it installs the battery in its battery slot
     const startEvents = drone.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery, duration: 1 });
@@ -118,6 +118,13 @@ test('Testing Drone Class removeBattery', () => {
     drone.removeBattery();
     assert.equal(drone.batterySlot, null, "Expected battery slot to be null after removal");
 });
+
+
+
+test('Loading Batt duration', () => {
+    const drone = new Drone("drone9", { coolDownTime: 0.1, maxFlightTime: 1 , loadingBatteryDuration = 0.05 });
+    const battery = new Battery("battery7", { maxFlightTime: 2, chargeTime: 1, chargePercent: 100});
+}) 
 
 // Command to run single test: node --test Drone.test.js
 // Command to run all tests: node --test
