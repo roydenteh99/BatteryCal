@@ -4,11 +4,11 @@ import {addHours} from "./TimeFunction.js";
 import {Battery} from "./SimplerBattery.js";
 
 export class Drone extends EventEmitter {
-  constructor(id, {coolDownTime = 0, loadingBatteryDuration = 0, maxFlightTime = null}) {
+  constructor(id, {coolDownTime = 0, loadingBatteryDuration = 0, maxFlightDuration = null}) {
     super(Event.EventType.DRONE, id);
     this.coolDownTime = coolDownTime
     this.loadingBatteryDuration = loadingBatteryDuration
-    this.maxFlightTime = maxFlightTime
+    this.maxFlightDuration = maxFlightDuration
     this.flightTimeSinceCoolDown =  0
     this.batterySlot = null
     this.droneState = Drone.State.READY
@@ -32,8 +32,9 @@ export class Drone extends EventEmitter {
 
   createStartEvent(time , {battery, duration}) {
     this.batterySlot = battery
-    const batteryEvent = this.batterySlot.createStartUseEvent(time)
-    const droneEvent = new Event (time, this.id, Drone.EventName.START_FLIGHT, Event.EventType.DRONE, {"duration": duration})
+    const startFlightTime = addHours(time, this.loadingBatteryDuration) 
+    const batteryEvent = this.batterySlot.createStartUseEvent(startFlightTime)
+    const droneEvent = new Event (startFlightTime, this.id, Drone.EventName.START_FLIGHT, Event.EventType.DRONE, {"duration": duration})
     this.droneState = Drone.State.IN_USE 
     return [droneEvent].concat(batteryEvent)
   }
@@ -58,7 +59,7 @@ export class Drone extends EventEmitter {
         
 
 
-        if(this.maxFlightTime != null && this.flightTimeSinceCoolDown >= this.maxFlightTime){
+        if(this.maxFlightDuration != null && this.flightTimeSinceCoolDown >= this.maxFlightDuration){
           const startCoolEvent = new Event (event.getTime(), this.id, Drone.EventName.START_COOL, Event.EventType.DRONE)
           return [startCoolEvent].concat(batteryEvent)
         } else {

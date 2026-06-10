@@ -9,7 +9,7 @@ import { Battery } from './SimplerBattery.js';
 
 test('Testing Drone Class getNextEvent for unhandled events returns empty array', () => {
     // A new drone is created with some specifications
-    const drone = new Drone("drone8", { coolDownTime: 0.1, maxFlightTime: 1 });
+    const drone = new Drone("drone8", { coolDownTime: 0.1, maxFlightDuration: 1 });
     
     // Create a random event that drone doesn't handle
     const randomEvent = new Event(new Date(2026, 0, 1, 0, 0), "unknown", "UNKNOWN_EVENT", Event.EventType.TRANSIT);
@@ -21,7 +21,7 @@ test('Testing Drone Class getNextEvent for unhandled events returns empty array'
 
 test("Testing Drone Class get properties and constructor", () => {
     // A new drone is created with an ID and configuration
-    const drone = new Drone("drone7", { coolDownTime: 0.1, maxFlightTime: 1 });
+    const drone = new Drone("drone7", { coolDownTime: 0.1, maxFlightDuration: 1 });
     
     // The drone should remember its ID
     assert.strictEqual(drone.getId(), "drone7", "Expected drone ID mismatch");
@@ -32,7 +32,7 @@ test("Testing Drone Class get properties and constructor", () => {
 
 test('Testing Drone Class createStartEvent', () => {
     // A new drone is created with a fully charged battery
-    const drone = new Drone("drone8", { coolDownTime: 0.1, maxFlightTime: 1 });
+    const drone = new Drone("drone8", { coolDownTime: 0.1, maxFlightDuration: 1 });
     const battery = new Battery("battery6", { maxFlightTime: 1, chargeTime: 1, chargePercent: 100 });
     
     // When starting a flight, the drone creates a pair of events: one for the drone and one for the battery
@@ -44,8 +44,8 @@ test('Testing Drone Class createStartEvent', () => {
 
 test('Testing Drone Class getNextEvent for START_FLIGHT -> END_FLIGHT -> START_COOL -> END_COOL -> END -> TRANSIT', () => {
     // Set up a drone with a fully charged battery, ready to fly for 1 hour with 0.1 hour cool down
-    const drone = new Drone("drone8", { coolDownTime: 0.1, maxFlightTime: 1 });
-    const battery = new Battery("battery6", { maxFlightTime: 1, chargeTime: 1, chargePercent: 100 });
+    const drone = new Drone("drone8", { coolDownTime: 0.1, maxFlightDuration: 1 });
+    const battery = new Battery("battery6", { maxFlightDuration: 1, chargeTime: 1, chargePercent: 100 });
     
     // Create the starting events when flight begins at midnight
     const startEvents = drone.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery, duration: 1 });
@@ -107,7 +107,7 @@ test('Testing Drone Class getNextEvent for START_FLIGHT -> END_FLIGHT -> START_C
 
 test('Testing Drone Class removeBattery', () => {
     // Set up a drone with a fully charged battery
-    const drone = new Drone("drone9", { coolDownTime: 0.1, maxFlightTime: 1 });
+    const drone = new Drone("drone9", { coolDownTime: 0.1, maxFlightDuration: 1 });
     const battery = new Battery("battery7", { maxFlightTime: 2, chargeTime: 1, chargePercent: 100});
     
     // When the drone starts a flight, it installs the battery in its battery slot
@@ -122,8 +122,17 @@ test('Testing Drone Class removeBattery', () => {
 
 
 test('Loading Batt duration', () => {
-    const drone = new Drone("drone9", { coolDownTime: 0.1, maxFlightTime: 1 , loadingBatteryDuration = 0.05 });
+    // set drone cool down time to be 0.1 hours (6 minutes) and loading battery duration to be 0.05 hours (3 minutes) and its max flight duration to be 1 hour
+    const drone = new Drone("drone9", { coolDownTime: 0.1, maxFlightDuration: 1 , loadingBatteryDuration: 0.05 });
+    // set up a fully charged battery that can fly for 2 hours, but we will only fly for 0.5 hours to test the loading battery duration
     const battery = new Battery("battery7", { maxFlightTime: 2, chargeTime: 1, chargePercent: 100});
+    // start a flight for 0.5 hours
+    const startEvents = drone.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery, duration: 0.5 });
+    const endFlightEvent = drone.getNextEvent(startEvents.find(event => event.eventName === "Start Flight"))[0];
+    const droneEndFlightEvent = drone.getNextEvent(endFlightEvent).find(event => event.getEventType() === Event.EventType.DRONE);
+    const droneEndEvent = drone.getNextEvent(endFlightEvent).find(event => event.getEventType() === Event.EventType.DRONE);
+    
+    assert.equal(droneEndFlightEvent.getTimeDisplay(), new Date(2026, 0, 0, 0, 36).toLocaleTimeString(), "Expected End event time mismatch with loading battery duration");
 }) 
 
 // Command to run single test: node --test Drone.test.js
