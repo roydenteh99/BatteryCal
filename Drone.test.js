@@ -124,15 +124,43 @@ test('Testing Drone Class removeBattery', () => {
 test('Loading Batt duration', () => {
     // set drone cool down time to be 0.1 hours (6 minutes) and loading battery duration to be 0.05 hours (3 minutes) and its max flight duration to be 1 hour
     const drone = new Drone("drone9", { coolDownTime: 0.1, maxFlightDuration: 1 , loadingBatteryDuration: 0.05 });
+    
     // set up a fully charged battery that can fly for 2 hours, but we will only fly for 0.5 hours to test the loading battery duration
     const battery = new Battery("battery7", { maxFlightTime: 2, chargeTime: 1, chargePercent: 100});
-    // start a flight for 0.5 hours
-    const startEvents = drone.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery, duration: 0.5 });
-    const endFlightEvent = drone.getNextEvent(startEvents.find(event => event.eventName === "Start Flight"))[0];
-    const droneEndFlightEvent = drone.getNextEvent(endFlightEvent).find(event => event.getEventType() === Event.EventType.DRONE);
-    const droneEndEvent = drone.getNextEvent(endFlightEvent).find(event => event.getEventType() === Event.EventType.DRONE);
-    
-    assert.equal(droneEndFlightEvent.getTimeDisplay(), new Date(2026, 0, 0, 0, 36).toLocaleTimeString(), "Expected End event time mismatch with loading battery duration");
+    // start a flight for 0.5 hours , due to loading battery duration of 0.05 hours, the start flight event should be at 12:00:03 AM
+    const startEvent = drone.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery, duration: 0.5 }).find(event => event.eventName === "Start Flight");
+    assert.equal(startEvent.getTimeDisplay(), new Date(2026, 0, 1, 0, 3).toLocaleTimeString(), "Expected Start Flight event time mismatch");
+    // after flying for 0.5 hours, the end flight event should be at 12:30:03 AM (0.5 hours of flight time + 0.05 hours of loading battery duration)
+    const endFlightEvent = drone.getNextEvent(startEvent)[0];
+    assert.equal(endFlightEvent.eventName, "End Flight", "Expected End Flight event name mismatch");
+    assert.equal(endFlightEvent.getTimeDisplay(), new Date(2026, 0, 1, 0, 33).toLocaleTimeString(), "Expected End Flight event time mismatch with loading battery duration");
+    // after the flight ends , since the duration of flight is < max flight duration , drone does not goes into cool down and thus proceed to end event after loading battery duration of 0.05 hours and thus the end event should be at 12:36:03 AM
+    const endEvent = drone.getNextEvent(endFlightEvent).find(event => event.getEventType() === Event.EventType.DRONE);
+    assert.equal(endEvent.eventName, "End", "Expected End event name mismatch");
+    assert.equal(endEvent.getTimeDisplay(), new Date(2026, 0, 1, 0, 36).toLocaleTimeString(), "Expected End event time mismatch with loading battery duration");
+
+
+    const droneA =new Drone("droneA", { coolDownTime: 0.02, maxFlightDuration: 0.5 , loadingBatteryDuration: 0.05 });
+    // set up a fully charged battery that can fly for 2 hours, but we will only fly for 0.5 hours to test the loading battery duration
+    const batteryA = new Battery("battery8", { maxFlightTime: 2, chargeTime: 1, chargePercent: 100});
+    // start a flight for 0.5 hours , due to loading battery duration of 0.05 hours, the start flight event should be at 12:00:03 AM
+    const startEventA = droneA.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery: batteryA, duration: 0.5 }).find(event => event.eventName === "Start Flight");
+    assert.equal(startEventA.getTimeDisplay(), new Date(2026, 0, 1, 0, 3).toLocaleTimeString(), "Expected Start Flight event time mismatch");
+    // after flying for 0.5 hours, the end flight event should be at 12:30:03 AM (0.5 hours of flight time + 0.05 hours of loading battery duration)
+    const endFlightEventA = droneA.getNextEvent(startEventA)[0];
+    assert.equal(endFlightEventA.eventName, "End Flight", "Expected End Flight event name mismatch");
+    assert.equal(endFlightEventA.getTimeDisplay(), new Date(2026, 0, 1, 0, 33).toLocaleTimeString(), "Expected End Flight event time mismatch with loading battery duration");
+    // after the flight ends , since the duration of flight is = max flight duration , drone goes into cool down and thus proceed to start cool event after loading battery duration of 0.05 hours and thus the start cool event should be at 12:36:03 AM
+    const startCoolEventA = droneA.getNextEvent(endFlightEventA).find(event => event.eventName === "Start Cool");
+    assert.equal(startCoolEventA.eventName, "Start Cool", "Expected Start Cool event name mismatch");
+    assert.equal(startCoolEventA.getTimeDisplay(), new Date(2026, 0, 1, 0, 33).toLocaleTimeString(), "Expected Start Cool event time mismatch with loading battery duration");
+    // after cool down starts , given that is loading battery duration is > cool down duration, 
+    // thus the end cool event  will simply  take the longer loading battery duration of 0.05 hours 
+    // where the cooling duration would be over in between the loading battery duration
+    // the end cool event should be at 12:36:00 AM
+    const endCoolEventA = droneA.getNextEvent(startCoolEventA)[0];
+    assert.equal(endCoolEventA.eventName, "End Cool", "Expected End Cool event name mismatch");
+    assert.equal(endCoolEventA.getTimeDisplay(), new Date(2026, 0, 1, 0, 36).toLocaleTimeString(), "Expected End Cool event time mismatch with loading battery duration");
 }) 
 
 // Command to run single test: node --test Drone.test.js

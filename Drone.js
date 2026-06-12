@@ -52,8 +52,6 @@ export class Drone extends EventEmitter {
         const batterySwapDuration = this.loadingBatteryDuration
         const endTime = addHours(event.getTime(), batterySwapDuration)
         const batteryEvent = this.batterySlot.createEndUseEvent(endTime, duration)
-
-        
         this.flightTimeSinceCoolDown += duration
         this.removeBattery()
         
