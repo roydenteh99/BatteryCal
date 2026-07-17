@@ -22,7 +22,9 @@ export class EventEmitter{
   getState() {
     return null
   }
-  
+  getEventEmitterType() {
+    return this.eventEmitterType
+  }
 }
 
 function EventEmitterTest() {

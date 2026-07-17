@@ -1,18 +1,169 @@
-class EventQueue {
-  constructor(startTime = "2026-01-01 09:00") {
+import {EventEmitter} from './EventEmitter.js';
+import { Charger } from './Charger.js';
+import { Battery } from './SimplerBattery.js';
+import { Drone } from './Drone.js';
+
+import {Event} from './Event.js';
+import {getTimeDiffInHours, addHours} from './TimeFunction.js';
+
+export class EventQueue {
+  constructor(startTime = "2026-01-01 09:00", endTime = null, droneList = [], batteryList = [], chargerList = []) {
+    this.droneList = droneList;
+    this.batteryList = batteryList;
+    this.chargerList = chargerList;
     this.events = [];
+    this.maxIteration = 100; // to prevent infinite loop in case of bugs
     this.currentTime = new Date(startTime);
+    this.iterationCount = 0;
+    this.endTime = endTime;
   }
 
   // Adds an event and advances the "cursor" of time
-  addEvent(label, durationMinutes, metadata = "") {
-    const start = new Date(this.currentTime);
-    this.currentTime.setMinutes(this.currentTime.getMinutes() + durationMinutes);
-    const end = new Date(this.currentTime);
+  advanceEvent() {
+    this.iterationCount++;    
+    this.events = sortEvents(this.events);
+    const currentEvent = this.events.shift();
+    this.currentTime = currentEvent.time;
+    const eventEmitter = this.findEventEmitterFromEvent(currentEvent);
+    let nextEvents = [] ;
 
-    const event = { label, start, end, metadata };
-    this.events.push(event);
-    return event;
+    const transitHandler = {
+      "BATT_SOURCE_DRONE": this.battSourceDrone.bind(this),
+      "BATT_SOURCE_CHARGER": this.battSourceCharger.bind(this),
+      "DRONE_SOURCE_BATT": this.droneSourceBatt.bind(this),
+      "CHARGER_SOURCE_BATT": (event) => {console.log("place holder for transit event from battery to charger")}
+    }
+
+
+    if (currentEvent.getEventType() === Event.EventType.TRANSIT) {
+      nextEvents = transitHandler[currentEvent.getEventName()](eventEmitter);
+    } else {
+      nextEvents = eventEmitter.getNextEvent(currentEvent);
+    }
+    this.events = this.events.concat(nextEvents);
+  
+  }
+
+  battSourceDrone (battery) {
+    const drone = this.droneList.find(drone=> drone.getState() == 2 )
+    if (battery.getEventEmitterType() !== Event.EventType.BATTERY) {
+      console.error("Expected a battery emitter, but got:", battery);
+      return [];
+    }
+
+    if (drone) {
+      return drone.createStartEvent(this.currentTime, {battery, duration: drone.maxFlightDuration});
+    } else {
+      console.log("No available drone for battery", battery.getId(), "at time", this.currentTime);
+      return [];
+    }
+
+  }
+
+  battSourceCharger (battery) {
+    const charger = this.chargerList.find(charger=> charger.getState() == 2 )
+    if (charger) {
+      return charger.createStartEvent(this.currentTime, {battery, duration: battery.getChargeDuration()});
+    } else {
+      console.log("No available charger for battery", battery.getId(), "at time", this.currentTime);
+      return [];
+    }
+  }
+
+  droneSourceBatt (drone) {
+    // Find a fully charged battery first
+    const fullyChargedBattery = this.batteryList.find(battery => battery.getState() === 2);
+    // Calculate the remaining time until the end time, accounting for battery loading and unloading duration
+    const durationTillEndTime = getTimeDiffInHours(this.endTime, this.currentTime) - drone.getLoadingDuration() * 2;
+    
+    if (fullyChargedBattery) {
+      return fullyChargedBattery
+        .createStartEvent(this.currentTime, {drone, duration: Math.min(durationTillEndTime, drone.maxFlightDuration)});
+    } 
+
+    const chargerWithSemiChargedBatt = this.chargerList.reduce((bestCharger, charger) => {
+      const battery = charger.getBattery();
+      if (!battery || charger.getState() != 1 || battery.getAvailableFlightTime() <= 0) {
+        return bestCharger;
+      }
+      if (!bestCharger) {
+        return charger;
+      }
+
+      const bestBattery = bestCharger.getBattery();
+      return battery.getAvailableFlightTime() > bestBattery.getAvailableFlightTime()
+        ? charger
+        : bestCharger;
+    
+      }, null);
+
+    if (chargerWithSemiChargedBatt) {
+      const semiChargedBattery = chargerWithSemiChargedBatt.getBattery()
+      const maxDurationToChargeAndFlight = semiChargedBattery.getAvailableFlightTime() + semiChargedBattery.getChargeTimeTillFull();
+      if (maxDurationToChargeAndFlight > durationTillEndTime) {
+        console.log("Given there is available time to fully charge and utilisedbattery ,allow battery to fully charge ")
+        return []
+      
+      } else {
+        const {startTime} = optimiseDuationAndStartTime(semiChargedBattery, durationTillEndTime, this.currentTime);
+        chargerWithSemiChargedBatt.prematureEndCharge(startTime)
+        console.log("Designated Charger ",chargerWithSemiChargedBatt.getEmitterId() , "to end charging time ", startTime.display , "toLocaleTimeString()" )
+        return[]
+      }
+    }
+      
+      console.log("No available battery for drone", drone.getId(), "at time", this.currentTime);
+      return [];
+    }
+
+  
+
+  optimiseDuationAndStartTime(battery, durationTillEndTime, currentTime) {
+    const availableFlightTime = battery.getAvailableFlightTime();
+
+      const chargeToFlightRatio = battery.getChargeTimeToFlightRatio();
+      const extraFlightDuration = (durationTillEndTime - availableFlightTime) * 1 / (1 + chargeToFlightRatio);
+      const extraChargeDuration = extraFlightDuration * chargeToFlightRatio;
+
+      const duration = addHours(availableFlightTime, extraFlightDuration);
+      const startTime = addHours(currentTime, extraChargeDuration);
+
+      return {startTime};
+
+  }
+
+  chargerSourceBatt(charger) {
+    const fullyChargedBattery = this.batteryList.find(battery => battery.getState() === -1);
+    
+  }
+
+  startCycle() { 
+    const condition = () => {
+      if (this.endTime) {
+        return this.currentTime < new Date(this.endTime) && this.events.length > 0;
+      } else {
+        return this.events.length > 0 && this.iterationCount < this.maxIteration;
+      }
+    }
+
+    while (condition()) {
+      this.advanceEvent();
+    }
+  }
+
+  findEventEmitterFromEvent(event) {
+   const eventType = event.getEventType();
+   
+   if (eventType === Event.EventType.BATTERY || (eventType === Event.EventType.TRANSIT && event.getEventName().startsWith("BATT_SOURCE"))) {
+     return this.batteryList.find(b => b.getId() === event.getEmitterId());
+   } else if (eventType === Event.EventType.DRONE || (eventType === Event.EventType.TRANSIT && event.getEventName().startsWith("DRONE_SOURCE"))) {
+     return this.droneList.find(d => d.getId() === event.getEmitterId());
+   } else if (eventType === Event.EventType.CHARGER || (eventType === Event.EventType.TRANSIT && event.getEventName().startsWith("CHARGER_SOURCE"))) {
+     return this.chargerList.find(c => c.getId() === event.getEmitterId());
+   } else {
+    console.error("Unknown event type or emitter for event:", event);
+    return null;
+   }
   }
 
   getSequence() {

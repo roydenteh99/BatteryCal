@@ -12,6 +12,10 @@ export class Charger extends EventEmitter {
     this.endChargeEvent = null;
   }
 
+  getBattery() {
+    return this.batterySlot
+  }
+
 
   checkAvail(){
     return this.chargerState === Charger.State.READY;
@@ -29,6 +33,7 @@ export class Charger extends EventEmitter {
   prematureEndCharge(time) {
     if (this.endChargeEvent) {
       this.endChargeEvent.changeTime(time);
+      this.chargerState = Charger.State.NOT_READY_BOOKED
     } else{
       throw new Error("No ongoing charge to end prematurely.");
     }
@@ -76,5 +81,7 @@ Charger.EventName = Object.freeze({
 
 Charger.State = Object.freeze({
   READY : 2,
-  NOT_READY : 1
+  NOT_READY : 1,
+  NOT_READY_BOOKED : 0, 
+  
 });

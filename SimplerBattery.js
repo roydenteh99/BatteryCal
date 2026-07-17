@@ -10,8 +10,12 @@ export class Battery extends EventEmitter {
         this.chargeTime = chargeTime
         this.chargePercent = chargePercent
         this.batteryState = Battery.State.READY
-        }
-
+    }
+    
+    getMaxFlightTime() {
+        return this.maxFlightTime;
+    }
+    
     getState() {
         return this.batteryState;
     }
@@ -25,7 +29,10 @@ export class Battery extends EventEmitter {
         return ((100 - this.chargePercent) / 100) * this.chargeTime;
     }
 
-
+    get chargeTimeToFlightRatio() {
+        return this.chargeTime / this.maxFlightTime;
+    }
+    
     getNextEvent(event){
         switch (event.eventName) {
 

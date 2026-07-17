@@ -14,6 +14,10 @@ export class Drone extends EventEmitter {
     this.droneState = Drone.State.READY
   }
 
+  getLoadingDuration() {
+    return this.loadingBatteryDuration;
+  }
+
   getState() {
     return this.droneState;
   }
