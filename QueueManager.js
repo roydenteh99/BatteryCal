@@ -31,7 +31,7 @@ export class EventQueue {
       "BATT_SOURCE_DRONE": this.battSourceDrone.bind(this),
       "BATT_SOURCE_CHARGER": this.battSourceCharger.bind(this),
       "DRONE_SOURCE_BATT": this.droneSourceBatt.bind(this),
-      "CHARGER_SOURCE_BATT": (event) => {console.log("place holder for transit event from battery to charger")}
+      "CHARGER_SOURCE_BATT": this.chargerSourceBatt.bind(this)
     }
 
 
@@ -114,7 +114,7 @@ export class EventQueue {
       
       console.log("No available battery for drone", drone.getId(), "at time", this.currentTime);
       return [];
-    }
+  }
 
   
 
@@ -133,9 +133,13 @@ export class EventQueue {
   }
 
   chargerSourceBatt(charger) {
-    const fullyChargedBattery = this.batteryList.find(battery => battery.getState() === -1);
-    
+    const durationTillEndTime = getTimeDiffInHours(this.endTime, this.currentTime);
+    const batteryToCharge = this.batteryList.find(battery => battery.getState() === -1);
+    const shorterDuration = batteryToCharge ? Math.min(batteryToCharge.getChargeTimeTillFull(), durationTillEndTime) : 0;
+    return batteryToCharge ? [charger.createStartEvent(this.currentTime, {battery: batteryToCharge, duration: shorterDuration})] : [];
   }
+
+  
 
   startCycle() { 
     const condition = () => {
