@@ -32,7 +32,10 @@ export class Drone extends EventEmitter {
 
   removeBattery() {
     this.batterySlot = null
-  } 
+  }
+  createSourceBatteryEvent(time) {
+    return new Event(time, this.id, Drone.EventName.DRONE_SOURCE_BATT , Event.EventType.TRANSIT)
+  }
 
   createStartEvent(time , {battery, duration}) {
     this.batterySlot = battery

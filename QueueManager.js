@@ -11,6 +11,7 @@ export class EventQueue {
     this.droneList = droneList;
     this.batteryList = batteryList;
     this.chargerList = chargerList;
+    this.recordedEvents = [];
     this.events = [];
     this.maxIteration = 100; // to prevent infinite loop in case of bugs
     this.currentTime = new Date(startTime);
@@ -41,7 +42,7 @@ export class EventQueue {
       nextEvents = eventEmitter.getNextEvent(currentEvent);
     }
     this.events = this.events.concat(nextEvents);
-  
+    this.recordedEvents.push(currentEvent);
   }
 
   battSourceDrone (battery) {
@@ -77,8 +78,7 @@ export class EventQueue {
     const durationTillEndTime = getTimeDiffInHours(this.endTime, this.currentTime) - drone.getLoadingDuration() * 2;
     
     if (fullyChargedBattery) {
-      return fullyChargedBattery
-        .createStartEvent(this.currentTime, {drone, duration: Math.min(durationTillEndTime, drone.maxFlightDuration)});
+      return drone.createStartEvent(this.currentTime, {battery: fullyChargedBattery, duration: drone.maxFlightDuration});
     } 
 
     const chargerWithSemiChargedBatt = this.chargerList.reduce((bestCharger, charger) => {
@@ -101,24 +101,24 @@ export class EventQueue {
       const semiChargedBattery = chargerWithSemiChargedBatt.getBattery()
       const maxDurationToChargeAndFlight = semiChargedBattery.getAvailableFlightTime() + semiChargedBattery.getChargeTimeTillFull();
       if (maxDurationToChargeAndFlight > durationTillEndTime) {
-        console.log("Given there is available time to fully charge and utilisedbattery ,allow battery to fully charge ")
+        //console.log("Given there is available time to fully charge and utilisedbattery ,allow battery to fully charge ")
         return []
       
       } else {
-        const {startTime} = optimiseDuationAndStartTime(semiChargedBattery, durationTillEndTime, this.currentTime);
+        const {startTime} = this.optimiseDurationAndStartTime(semiChargedBattery, durationTillEndTime, this.currentTime);
         chargerWithSemiChargedBatt.prematureEndCharge(startTime)
-        console.log("Designated Charger ",chargerWithSemiChargedBatt.getEmitterId() , "to end charging time ", startTime.display , "toLocaleTimeString()" )
+        //console.log("Designated Charger ",chargerWithSemiChargedBatt.getEmitterId() , "to end charging time ", startTime.display , "toLocaleTimeString()" )
         return[]
       }
     }
       
-      console.log("No available battery for drone", drone.getId(), "at time", this.currentTime);
+      //console.log("No available battery for drone", drone.getId(), "at time", this.currentTime);
       return [];
   }
 
   
 
-  optimiseDuationAndStartTime(battery, durationTillEndTime, currentTime) {
+  optimiseDurationAndStartTime(battery, durationTillEndTime, currentTime) {
     const availableFlightTime = battery.getAvailableFlightTime();
 
       const chargeToFlightRatio = battery.getChargeTimeToFlightRatio();
@@ -155,6 +155,14 @@ export class EventQueue {
     }
   }
 
+  startWithDroneSourceBattEvent() {
+    for (const drone of this.droneList) {
+      const droneSourceBattEvent = drone.createSourceBatteryEvent(this.currentTime);
+      this.events.push(droneSourceBattEvent);
+    }
+  }
+
+
   findEventEmitterFromEvent(event) {
    const eventType = event.getEventType();
    
@@ -171,11 +179,10 @@ export class EventQueue {
   }
 
   getSequence() {
-    return this.events.map(e => ({
-      Task: e.label,
-      Start: e.start.toLocaleString(),
-      End: e.end.toLocaleString(),
-      Info: e.metadata
+    return this.recordedEvents.map(e => ({
+      time: e.getTimeDisplay(),
+      eventName: e.getEventName(),
+      emitterId: e.getEmitterId(),
     }));
   }
 }
