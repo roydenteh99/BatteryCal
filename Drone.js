@@ -4,7 +4,7 @@ import {addHours} from "./TimeFunction.js";
 import {Battery} from "./SimplerBattery.js";
 
 export class Drone extends EventEmitter {
-  constructor(id, {coolDownTime = 0, loadingBatteryDuration = 0, maxFlightDuration = null}) {
+  constructor(id, {coolDownTime = 0, loadingBatteryDuration = 0, maxFlightDuration = null} = {}) {
     super(Event.EventType.DRONE, id);
     this.coolDownTime = coolDownTime
     this.loadingBatteryDuration = loadingBatteryDuration

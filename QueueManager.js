@@ -78,7 +78,7 @@ export class EventQueue {
     const durationTillEndTime = getTimeDiffInHours(this.endTime, this.currentTime) - drone.getLoadingDuration() * 2;
     
     if (fullyChargedBattery) {
-      return drone.createStartEvent(this.currentTime, {battery: fullyChargedBattery, duration: drone.maxFlightDuration});
+      return drone.createStartEvent(this.currentTime, {battery: fullyChargedBattery, duration: fullyChargedBattery.maxFlightTime});
     } 
 
     const chargerWithSemiChargedBatt = this.chargerList.reduce((bestCharger, charger) => {

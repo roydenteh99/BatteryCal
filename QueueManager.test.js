@@ -9,7 +9,7 @@ const drone = new Drone("drone8", { coolDownTime: 0.1, maxFlightDuration: 1 });
 const noOfDrones = 2;
 const droneList = [];
 for (let i = 0; i < noOfDrones; i++) {
-    droneList.push(new Drone(`drone${i}`, { maxFlightDuration: 1, loadingBatteryDuration: 0.1 }));
+    droneList.push(new Drone(`drone${i}`));
 }
 
 // Creating Batteries instance for testing

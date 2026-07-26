@@ -5,7 +5,13 @@ import { Event } from './Event.js';
 import { Battery } from './SimplerBattery.js';
 //import { User } from './User.js'; whatever class you want to test, import it here
 
+test('Empty param test to ensure class constructor works', () => {  
+    const drone = new Drone("drone8");
+    assert.strictEqual(drone.getId(), "drone8");
+    const battery = new Battery("battery6", { maxFlightDuration: 1, chargeTime: 1, chargePercent: 100 });
+    drone.createStartEvent(new Date(2026, 0, 1, 0, 0), { battery, duration: 1 });
 
+});
 
 test('Testing Drone Class getNextEvent for unhandled events returns empty array', () => {
     // A new drone is created with some specifications
