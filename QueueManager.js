@@ -55,7 +55,7 @@ export class EventQueue {
     if (drone) {
       return drone.createStartEvent(this.currentTime, {battery, duration: drone.maxFlightDuration});
     } else {
-      console.log("No available drone for battery", battery.getId(), "at time", this.currentTime);
+      // console.log("No available drone for battery", battery.getId(), "at time", this.currentTime);
       return [];
     }
 
@@ -64,9 +64,9 @@ export class EventQueue {
   battSourceCharger (battery) {
     const charger = this.chargerList.find(charger=> charger.getState() == 2 )
     if (charger) {
-      return charger.createStartEvent(this.currentTime, {battery, duration: battery.getChargeDuration()});
+      return charger.createStartEvent(this.currentTime, {battery, duration: battery.getChargeTimeTillFull()});
     } else {
-      console.log("No available charger for battery", battery.getId(), "at time", this.currentTime);
+      // console.log("No available charger for battery", battery.getId(), "at time", this.currentTime);
       return [];
     }
   }
