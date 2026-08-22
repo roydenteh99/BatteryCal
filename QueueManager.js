@@ -46,7 +46,15 @@ export class EventQueue {
   }
 
   battSourceDrone (battery) {
+
+    // ensure that that once a battery has been sourced to a drone, 
+    // it should not be sourced again until it has been fully charged and is ready for use.
+    if (battery.getState() !== BatteryState.READY) {
+      return [];
+    }
+
     const drone = this.droneList.find(drone=> drone.getState() == 2 )
+    
     if (battery.getEventEmitterType() !== Event.EventType.BATTERY) {
       console.error("Expected a battery emitter, but got:", battery);
       return [];
@@ -62,6 +70,15 @@ export class EventQueue {
   }
 
   battSourceCharger (battery) {
+    // ensure that that once a battery has been sourced to a charger, 
+    // it should not be sourced again until it has been fully charged and is ready for use.
+    if (battery.getState() !== BatteryState.FLAT) {
+      return [];
+    }
+
+    if (battery.getState() !== BatteryState.FLAT) {
+      return [];
+    }
     const charger = this.chargerList.find(charger=> charger.getState() == 2 )
     if (charger) {
       return charger.createStartEvent(this.currentTime, {battery, duration: battery.getChargeTimeTillFull()});
@@ -72,6 +89,11 @@ export class EventQueue {
   }
 
   droneSourceBatt (drone) {
+    // ensure that that once a drone has been sourced to a battery,
+    // it should not be sourced again until it has been fully charged and is ready for use.
+    if (drone.getState() !== Drone.State.READY) {
+      return [];
+    }
     // Find a fully charged battery first
     const fullyChargedBattery = this.batteryList.find(battery => battery.getState() === 2);
     // Calculate the remaining time until the end time, accounting for battery loading and unloading duration
@@ -83,7 +105,7 @@ export class EventQueue {
 
     const chargerWithSemiChargedBatt = this.chargerList.reduce((bestCharger, charger) => {
       const battery = charger.getBattery();
-      if (!battery || charger.getState() != 1 || battery.getAvailableFlightTime() <= 0) {
+      if (!battery || charger.getState() != 1 || battery.getAvailFlightTime() <= 0) {
         return bestCharger;
       }
       if (!bestCharger) {
@@ -91,7 +113,7 @@ export class EventQueue {
       }
 
       const bestBattery = bestCharger.getBattery();
-      return battery.getAvailableFlightTime() > bestBattery.getAvailableFlightTime()
+      return battery.getAvailFlightTime() > bestBattery.getAvailFlightTime()
         ? charger
         : bestCharger;
     
@@ -133,10 +155,16 @@ export class EventQueue {
   }
 
   chargerSourceBatt(charger) {
+    // ensure that that once a charger has been sourced to a battery via battSourceCharger,
+    // it should not be sourced again until it has been fully charged and is ready for use.
+    if (charger.getState() !== Charger.State.READY) {
+      return [];
+    }
     const durationTillEndTime = getTimeDiffInHours(this.endTime, this.currentTime);
     const batteryToCharge = this.batteryList.find(battery => battery.getState() === -1);
     const shorterDuration = batteryToCharge ? Math.min(batteryToCharge.getChargeTimeTillFull(), durationTillEndTime) : 0;
-    return batteryToCharge ? [charger.createStartEvent(this.currentTime, {battery: batteryToCharge, duration: shorterDuration})] : [];
+    // `charger.createStartEvent` already returns an array of events; avoid wrapping it in another array
+    return batteryToCharge ? charger.createStartEvent(this.currentTime, {battery: batteryToCharge, duration: shorterDuration}) : [];
   }
 
   
@@ -190,10 +218,19 @@ export class EventQueue {
 // to sort events by time and then by type battery,drone,charger event to precede traansit events
 function sortEvents(events) {
   const eventTypePriority = { [Event.EventType.BATTERY]: 1, [Event.EventType.DRONE]: 1, [Event.EventType.CHARGER]: 1, [Event.EventType.TRANSIT]: 2 };
+
   return events.sort((a, b) => {
-    if (a.time.getTime() === b.time.getTime()) {
+    // defensive logging: ensure both items expose getTime()
+    const aHasGetTime = a && typeof a.getTime === 'function';
+    const bHasGetTime = b && typeof b.getTime === 'function';
+    if (!aHasGetTime || !bHasGetTime) {
+      console.error('sortEvents: item missing getTime()', { a, b });
+      throw new TypeError('sortEvents: item missing getTime()');
+    }
+
+    if (a.getTime() === b.getTime()) {
       return eventTypePriority[a.eventType] - eventTypePriority[b.eventType];
     }
-    return a.time.getTime() - b.time.getTime();
+    return a.getTime() - b.getTime();
   });
 } 
