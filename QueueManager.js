@@ -49,7 +49,7 @@ export class EventQueue {
 
     // ensure that that once a battery has been sourced to a drone, 
     // it should not be sourced again until it has been fully charged and is ready for use.
-    if (battery.getState() !== BatteryState.READY) {
+    if (battery.getState() !== Battery.State.READY) {
       return [];
     }
 
@@ -72,11 +72,11 @@ export class EventQueue {
   battSourceCharger (battery) {
     // ensure that that once a battery has been sourced to a charger, 
     // it should not be sourced again until it has been fully charged and is ready for use.
-    if (battery.getState() !== BatteryState.FLAT) {
+    if (battery.getState() !== Battery.State.FLAT) {
       return [];
     }
 
-    if (battery.getState() !== BatteryState.FLAT) {
+    if (battery.getState() !== Battery.State.FLAT) {
       return [];
     }
     const charger = this.chargerList.find(charger=> charger.getState() == 2 )
