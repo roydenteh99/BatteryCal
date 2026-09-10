@@ -16,7 +16,7 @@ export class EventQueue {
     this.maxIteration = 100; // to prevent infinite loop in case of bugs
     this.currentTime = new Date(startTime);
     this.iterationCount = 0;
-    this.endTime = endTime;
+    this.endTime = endTime ? new Date(endTime) : null;
   }
 
   // Adds an event and advances the "cursor" of time
@@ -61,7 +61,7 @@ export class EventQueue {
     }
 
     if (drone) {
-      return drone.createStartEvent(this.currentTime, {battery, duration: drone.maxFlightDuration});
+      return drone.createStartEvent(this.currentTime, {battery, duration: battery.getAvailFlightTime()});
     } else {
       // console.log("No available drone for battery", battery.getId(), "at time", this.currentTime);
       return [];
@@ -97,7 +97,7 @@ export class EventQueue {
     // Find a fully charged battery first
     const fullyChargedBattery = this.batteryList.find(battery => battery.getState() === 2);
     // Calculate the remaining time until the end time, accounting for battery loading and unloading duration
-    const durationTillEndTime = getTimeDiffInHours(this.endTime, this.currentTime) - drone.getLoadingDuration() * 2;
+    const durationTillEndTime = getTimeDiffInHours(this.currentTime, this.endTime) - drone.getLoadingDuration() * 2;
     
     if (fullyChargedBattery) {
       return drone.createStartEvent(this.currentTime, {battery: fullyChargedBattery, duration: fullyChargedBattery.maxFlightTime});
@@ -121,7 +121,7 @@ export class EventQueue {
 
     if (chargerWithSemiChargedBatt) {
       const semiChargedBattery = chargerWithSemiChargedBatt.getBattery()
-      const maxDurationToChargeAndFlight = semiChargedBattery.getAvailableFlightTime() + semiChargedBattery.getChargeTimeTillFull();
+      const maxDurationToChargeAndFlight = semiChargedBattery.getAvailFlightTime() + semiChargedBattery.getChargeTimeTillFull();
       if (maxDurationToChargeAndFlight > durationTillEndTime) {
         //console.log("Given there is available time to fully charge and utilisedbattery ,allow battery to fully charge ")
         return []
@@ -141,15 +141,15 @@ export class EventQueue {
   
 
   optimiseDurationAndStartTime(battery, durationTillEndTime, currentTime) {
-    const availableFlightTime = battery.getAvailableFlightTime();
+      const availableFlightTime = battery.getAvailFlightTime();
 
       const chargeToFlightRatio = battery.getChargeTimeToFlightRatio();
-      const extraFlightDuration = (durationTillEndTime - availableFlightTime) * 1 / (1 + chargeToFlightRatio);
+      const extraFlightDuration = (durationTillEndTime - availableFlightTime) / (1 + chargeToFlightRatio);
       const extraChargeDuration = extraFlightDuration * chargeToFlightRatio;
+      
 
-      const duration = addHours(availableFlightTime, extraFlightDuration);
       const startTime = addHours(currentTime, extraChargeDuration);
-
+      // console.log("from line 152:QueueMAnager.js: Designated battery ", battery.getEmitterId(), "to start charging at ", startTime.display, "toLocaleTimeString()")
       return {startTime};
 
   }
@@ -160,7 +160,7 @@ export class EventQueue {
     if (charger.getState() !== Charger.State.READY) {
       return [];
     }
-    const durationTillEndTime = getTimeDiffInHours(this.endTime, this.currentTime);
+    const durationTillEndTime = getTimeDiffInHours(this.currentTime, this.endTime) ;
     const batteryToCharge = this.batteryList.find(battery => battery.getState() === -1);
     const shorterDuration = batteryToCharge ? Math.min(batteryToCharge.getChargeTimeTillFull(), durationTillEndTime) : 0;
     // `charger.createStartEvent` already returns an array of events; avoid wrapping it in another array
@@ -172,7 +172,7 @@ export class EventQueue {
   startCycle() { 
     const condition = () => {
       if (this.endTime) {
-        return this.currentTime < new Date(this.endTime) && this.events.length > 0;
+        return this.currentTime < this.endTime && this.events.length > 0 && this.iterationCount < this.maxIteration;
       } else {
         return this.events.length > 0 && this.iterationCount < this.maxIteration;
       }
