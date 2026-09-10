@@ -37,7 +37,11 @@ export class EventQueue {
 
 
     if (currentEvent.getEventType() === Event.EventType.TRANSIT) {
+      if (this.endTime && this.currentTime >= this.endTime) {
+        return;
+      }
       nextEvents = transitHandler[currentEvent.getEventName()](eventEmitter);
+
     } else {
       nextEvents = eventEmitter.getNextEvent(currentEvent);
     }
@@ -96,10 +100,12 @@ export class EventQueue {
     }
     // Find a fully charged battery first
     const fullyChargedBattery = this.batteryList.find(battery => battery.getState() === 2);
-    // Calculate the remaining time until the end time, accounting for battery loading and unloading duration
-    const durationTillEndTime = getTimeDiffInHours(this.currentTime, this.endTime) - drone.getLoadingDuration() * 2;
+    // Calculate usable flight time after allowing for battery loading and unloading.
+    const durationTillEndTime = this.endTime
+      ? Math.max(0, getTimeDiffInHours(this.currentTime, this.endTime) - drone.getLoadingDuration() * 2)
+      : Infinity;
     
-    if (fullyChargedBattery) {
+    if (fullyChargedBattery && fullyChargedBattery.maxFlightTime <= durationTillEndTime) {
       return drone.createStartEvent(this.currentTime, {battery: fullyChargedBattery, duration: fullyChargedBattery.maxFlightTime});
     } 
 
@@ -120,14 +126,19 @@ export class EventQueue {
       }, null);
 
     if (chargerWithSemiChargedBatt) {
-      const semiChargedBattery = chargerWithSemiChargedBatt.getBattery()
-      const maxDurationToChargeAndFlight = semiChargedBattery.getAvailFlightTime() + semiChargedBattery.getChargeTimeTillFull();
-      if (maxDurationToChargeAndFlight > durationTillEndTime) {
+      const semiChargedBattery = chargerWithSemiChargedBatt.getBattery() // Get the battery from the selected charger
+      const initialEndChargeEvent = chargerWithSemiChargedBatt.getEndChargeEvent(); // Get the end charge event from the selected charger
+      // Calculate the duration until the end charge event, if it exists
+      const durationTillFullCharge = initialEndChargeEvent ? getTimeDiffInHours(this.currentTime, initialEndChargeEvent.getTime()) : 0; 
+      
+      const durationToChargeAndFlyFully = durationTillFullCharge + semiChargedBattery.getMaxFlightTime();
+      if (durationToChargeAndFlyFully <= durationTillEndTime) {
         //console.log("Given there is available time to fully charge and utilisedbattery ,allow battery to fully charge ")
         return []
       
       } else {
-        const {startTime} = this.optimiseDurationAndStartTime(semiChargedBattery, durationTillEndTime, this.currentTime);
+
+        const {startTime} = this.optimiseDurationAndStartTime(semiChargedBattery, durationTillEndTime, chargerWithSemiChargedBatt.getElapsedChargeTime(this.currentTime));
         chargerWithSemiChargedBatt.prematureEndCharge(startTime)
         //console.log("Designated Charger ",chargerWithSemiChargedBatt.getEmitterId() , "to end charging time ", startTime.display , "toLocaleTimeString()" )
         return[]
@@ -140,15 +151,15 @@ export class EventQueue {
 
   
 
-  optimiseDurationAndStartTime(battery, durationTillEndTime, currentTime) {
-      const availableFlightTime = battery.getAvailFlightTime();
-
-      const chargeToFlightRatio = battery.getChargeTimeToFlightRatio();
-      const extraFlightDuration = (durationTillEndTime - availableFlightTime) / (1 + chargeToFlightRatio);
-      const extraChargeDuration = extraFlightDuration * chargeToFlightRatio;
+  optimiseDurationAndStartTime(battery, durationTillEndTime, elapsedChargeTime) {
       
 
-      const startTime = addHours(currentTime, extraChargeDuration);
+      const CFR = battery.getChargeToFlightTimeRatio();
+      const availableFlightDuration = battery.getAvailFlightTime() + elapsedChargeTime / CFR;
+      const remainingTimeIfChargingStop = Math.max(0, durationTillEndTime - availableFlightDuration) ;
+      const extraChargeDuration = remainingTimeIfChargingStop * (CFR / (CFR + 1)); // the extra charge duration needed to maximize flight time within the available time
+      
+      const startTime = addHours(this.currentTime, extraChargeDuration);
       // console.log("from line 152:QueueMAnager.js: Designated battery ", battery.getEmitterId(), "to start charging at ", startTime.display, "toLocaleTimeString()")
       return {startTime};
 
@@ -172,7 +183,7 @@ export class EventQueue {
   startCycle() { 
     const condition = () => {
       if (this.endTime) {
-        return this.currentTime < this.endTime && this.events.length > 0 && this.iterationCount < this.maxIteration;
+        return this.currentTime <= this.endTime && this.events.length > 0 && this.iterationCount < this.maxIteration;
       } else {
         return this.events.length > 0 && this.iterationCount < this.maxIteration;
       }
@@ -215,7 +226,7 @@ export class EventQueue {
   }
 }
 
-// to sort events by time and then by type battery,drone,charger event to precede traansit events
+// to sort events by time and then by type battery,drone,charger event to precede transit events
 function sortEvents(events) {
   const eventTypePriority = { [Event.EventType.BATTERY]: 1, [Event.EventType.DRONE]: 1, [Event.EventType.CHARGER]: 1, [Event.EventType.TRANSIT]: 2 };
 

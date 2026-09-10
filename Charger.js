@@ -10,6 +10,7 @@ export class Charger extends EventEmitter {
     this.chargerState = Charger.State.READY;
     this.batterySlot = null;
     this.endChargeEvent = null;
+    this.timeOfLatestStartCharge = null;
   }
 
   getBattery() {
@@ -46,7 +47,20 @@ export class Charger extends EventEmitter {
     
     this.batterySlot = battery;
     this.chargerState = Charger.State.NOT_READY;
+    this.timeOfLatestStartCharge = time;
     return [chargerEvent].concat(batteryEvent);
+  }
+
+  getEndChargeEvent() {
+    return this.endChargeEvent;
+  }
+
+  getElapsedChargeTime(currentTime) {
+    if (this.timeOfLatestStartCharge) {
+      return getTimeDiffInHours(this.timeOfLatestStartCharge, currentTime);
+    } else {
+      return 0; // No charge has started yet
+    }
   }
 
   getNextEvent(event){
