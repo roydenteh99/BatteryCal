@@ -48,6 +48,17 @@ test('Testing Battery Class createStartUseEvent and createStartChargeEvent', () 
     assert.equal(battery.getState(), Battery.State.CHARGING, "Expected start charge battery state mismatch");
 });
 
+test('Battery charge percentage includes elapsed charging time', () => {
+    const battery = new Battery("battery-charging", { maxFlightTime: 2, chargeTime: 1, chargePercent: 0 });
+    const startTime = new Date(2026, 0, 1, 0, 0);
+
+    battery.createStartChargeEvent(startTime);
+
+    assert.equal(battery.getChargePercent(new Date(2026, 0, 1, 0, 30)), 50);
+    assert.equal(battery.getAvailFlightTime(new Date(2026, 0, 1, 0, 30)), 1);
+    assert.equal(battery.getChargeTimeTillFull(new Date(2026, 0, 1, 0, 30)), 0.5);
+});
+
 test('Testing Battery Class getNextEvent for END_USE and END', () => {
     // A battery starts at 50% charge and can fly for 2 hours when fully charged
     const battery = new Battery("battery2", { maxFlightTime: 2, chargeTime: 1, chargePercent: 50 });

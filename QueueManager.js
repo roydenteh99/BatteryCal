@@ -65,7 +65,7 @@ export class EventQueue {
     }
 
     if (drone) {
-      return drone.createStartEvent(this.currentTime, {battery, duration: battery.getAvailFlightTime()});
+      return drone.createStartEvent(this.currentTime, {battery, duration: battery.getAvailFlightTime(this.currentTime)});
     } else {
       // console.log("No available drone for battery", battery.getId(), "at time", this.currentTime);
       return [];
@@ -85,7 +85,7 @@ export class EventQueue {
     }
     const charger = this.chargerList.find(charger=> charger.getState() == 2 )
     if (charger) {
-      return charger.createStartEvent(this.currentTime, {battery, duration: battery.getChargeTimeTillFull()});
+      return charger.createStartEvent(this.currentTime, {battery, duration: battery.getChargeTimeTillFull(this.currentTime)});
     } else {
       // console.log("No available charger for battery", battery.getId(), "at time", this.currentTime);
       return [];
@@ -111,7 +111,7 @@ export class EventQueue {
 
     const chargerWithSemiChargedBatt = this.chargerList.reduce((bestCharger, charger) => {
       const battery = charger.getBattery();
-      if (!battery || charger.getState() != 1 || battery.getAvailFlightTime() <= 0) {
+      if (!battery || charger.getState() !== Charger.State.NOT_READY) {
         return bestCharger;
       }
       if (!bestCharger) {
@@ -119,7 +119,7 @@ export class EventQueue {
       }
 
       const bestBattery = bestCharger.getBattery();
-      return battery.getAvailFlightTime() > bestBattery.getAvailFlightTime()
+      return battery.getAvailFlightTime(this.currentTime) > bestBattery.getAvailFlightTime(this.currentTime)
         ? charger
         : bestCharger;
     
@@ -138,7 +138,7 @@ export class EventQueue {
       
       } else {
 
-        const {startTime} = this.optimiseDurationAndStartTime(semiChargedBattery, durationTillEndTime, chargerWithSemiChargedBatt.getElapsedChargeTime(this.currentTime));
+        const {startTime} = this.optimiseDurationAndStartTime(semiChargedBattery, durationTillEndTime);
         chargerWithSemiChargedBatt.prematureEndCharge(startTime)
         //console.log("Designated Charger ",chargerWithSemiChargedBatt.getEmitterId() , "to end charging time ", startTime.display , "toLocaleTimeString()" )
         return[]
@@ -151,11 +151,10 @@ export class EventQueue {
 
   
 
-  optimiseDurationAndStartTime(battery, durationTillEndTime, elapsedChargeTime) {
-      
+  optimiseDurationAndStartTime(battery, durationTillEndTime) {
 
       const CFR = battery.getChargeToFlightTimeRatio();
-      const availableFlightDuration = battery.getAvailFlightTime() + elapsedChargeTime / CFR;
+      const availableFlightDuration = battery.getAvailFlightTime(this.currentTime);
       const remainingTimeIfChargingStop = Math.max(0, durationTillEndTime - availableFlightDuration) ;
       const extraChargeDuration = remainingTimeIfChargingStop * (CFR / (CFR + 1)); // the extra charge duration needed to maximize flight time within the available time
       
@@ -173,7 +172,7 @@ export class EventQueue {
     }
     const durationTillEndTime = getTimeDiffInHours(this.currentTime, this.endTime) ;
     const batteryToCharge = this.batteryList.find(battery => battery.getState() === -1);
-    const shorterDuration = batteryToCharge ? Math.min(batteryToCharge.getChargeTimeTillFull(), durationTillEndTime) : 0;
+    const shorterDuration = batteryToCharge ? Math.min(batteryToCharge.getChargeTimeTillFull(this.currentTime), durationTillEndTime) : 0;
     // `charger.createStartEvent` already returns an array of events; avoid wrapping it in another array
     return batteryToCharge ? charger.createStartEvent(this.currentTime, {battery: batteryToCharge, duration: shorterDuration}) : [];
   }
@@ -229,6 +228,10 @@ export class EventQueue {
 // to sort events by time and then by type battery,drone,charger event to precede transit events
 function sortEvents(events) {
   const eventTypePriority = { [Event.EventType.BATTERY]: 1, [Event.EventType.DRONE]: 1, [Event.EventType.CHARGER]: 1, [Event.EventType.TRANSIT]: 2 };
+  const transitionPriority = {
+    BATT_SOURCE_CHARGER: 1,
+    DRONE_SOURCE_BATT: 2
+  };
 
   return events.sort((a, b) => {
     // defensive logging: ensure both items expose getTime()
@@ -239,9 +242,21 @@ function sortEvents(events) {
       throw new TypeError('sortEvents: item missing getTime()');
     }
 
-    if (a.getTime() === b.getTime()) {
-      return eventTypePriority[a.eventType] - eventTypePriority[b.eventType];
+    if (a.getTime().getTime() === b.getTime().getTime()) {
+      const eventTypeDifference = eventTypePriority[a.eventType] - eventTypePriority[b.eventType];
+      if (eventTypeDifference !== 0) {
+        return eventTypeDifference;
+      }
+
+      if (a.eventType === Event.EventType.TRANSIT && b.eventType === Event.EventType.TRANSIT) {
+        const aTransitionPriority = transitionPriority[a.eventName] ?? 3;
+        const bTransitionPriority = transitionPriority[b.eventName] ?? 3;
+        return aTransitionPriority - bTransitionPriority;
+      }
     }
     return a.getTime() - b.getTime();
   });
 } 
+
+
+

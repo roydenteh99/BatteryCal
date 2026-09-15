@@ -1,6 +1,6 @@
 import { EventEmitter } from "./EventEmitter.js";
 import { Event } from "./Event.js";
-import {addHours} from "./TimeFunction.js";
+import {getTimeDiffInHours} from "./TimeFunction.js";
 
 export class Battery extends EventEmitter {
 
@@ -9,6 +9,7 @@ export class Battery extends EventEmitter {
         this.maxFlightTime = maxFlightTime
         this.chargeTime = chargeTime
         this.chargePercent = chargePercent
+        this.timeOfLatestStartCharge = null
         this.batteryState = Battery.State.READY
     }
     
@@ -21,16 +22,31 @@ export class Battery extends EventEmitter {
     }
 
 
-    getAvailFlightTime() {
-        return (this.chargePercent / 100) * this.maxFlightTime;
+    getChargePercent(currentTime = null) {
+        if (this.batteryState === Battery.State.CHARGING && this.timeOfLatestStartCharge && currentTime) {
+            const elapsedChargeTime = getTimeDiffInHours(this.timeOfLatestStartCharge, currentTime);
+            return Math.min(100, this.chargePercent + (elapsedChargeTime / this.chargeTime) * 100);
+        }
+        return this.chargePercent;
     }
 
-    getChargeTimeTillFull() {
-        return ((100 - this.chargePercent) / 100) * this.chargeTime;
+    getAvailFlightTime(currentTime = null) {
+        return (this.getChargePercent(currentTime) / 100) * this.maxFlightTime;
+    }
+
+    getChargeTimeTillFull(currentTime = null) {
+        return ((100 - this.getChargePercent(currentTime)) / 100) * this.chargeTime;
     }
 
     getChargeToFlightTimeRatio() {
         return this.chargeTime / this.maxFlightTime;
+    }
+
+    getElapsedChargeTime(currentTime) {
+        if (this.timeOfLatestStartCharge) {
+            return getTimeDiffInHours(this.timeOfLatestStartCharge, currentTime);
+        }
+        return 0;
     }
     
     getNextEvent(event){
@@ -66,11 +82,15 @@ export class Battery extends EventEmitter {
 
     createStartChargeEvent(time){
         this.batteryState = Battery.State.CHARGING
+        this.timeOfLatestStartCharge = time
         return [new Event(time, this.id, Battery.EventName.START_CHARGE, Event.EventType.BATTERY)];
     }
 
     createEndChargeEvent(time , chargeDuration){ 
-        this.chargePercent = Math.min(100, this.chargePercent + (chargeDuration / this.chargeTime) * 100)
+        this.chargePercent = this.timeOfLatestStartCharge
+            ? this.getChargePercent(time)
+            : Math.min(100, this.chargePercent + (chargeDuration / this.chargeTime) * 100)
+        this.timeOfLatestStartCharge = null
         return [new Event(time, this.id, Battery.EventName.END_CHARGE, Event.EventType.BATTERY)]
         }
     
