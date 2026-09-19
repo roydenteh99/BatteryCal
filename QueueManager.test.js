@@ -139,7 +139,7 @@ var droneList3 = createDroneList(1);
 var chargerList3 = createChargerList(1);
 
 // 4th test for EventQueue Premature End Charge testing
-test('EventQueue drone & battery & charger simulation ', () => {
+test('EventQueue records the expected event sequence', () => {
     const queue = new EventQueue(
         '2026-01-01 09:00',
         '2026-01-01 11:00',
@@ -151,5 +151,35 @@ test('EventQueue drone & battery & charger simulation ', () => {
     queue.startCycle();
 
     const sequence = queue.getSequence();
-    console.log("Event Sequence:", sequence.map(e => [e.eventName, e.time, e.emitterId]));
+    assert.deepStrictEqual(
+        sequence.map(({ eventName, emitterId }) => [eventName, emitterId]),
+        [
+            ['DRONE_SOURCE_BATT', 'drone0'],
+            ['Start Flight', 'drone0'],
+            ['Start Use', 'battery0'],
+            ['End Flight', 'drone0'],
+            ['End', 'drone0'],
+            ['End Use', 'battery0'],
+            ['End', 'battery0'],
+            ['BATT_SOURCE_CHARGER', 'battery0'],
+            ['Start Charge', 'charger0'],
+            ['Start Charge', 'battery0'],
+            ['DRONE_SOURCE_BATT', 'drone0'],
+            ['End Charge', 'charger0'],
+            ['End Charge', 'battery0'],
+            ['End', 'battery0'],
+            ['CHARGER_SOURCE_BATT', 'charger0'],
+            ['BATT_SOURCE_DRONE', 'battery0'],
+            ['Start Flight', 'drone0'],
+            ['Start Use', 'battery0'],
+            ['End Flight', 'drone0'],
+            ['End', 'drone0'],
+            ['End Use', 'battery0'],
+            ['End', 'battery0']
+        ],
+        'The queue recorded an unexpected event sequence'
+    );
 });
+
+
+

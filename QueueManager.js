@@ -219,6 +219,7 @@ export class EventQueue {
   getSequence() {
     return this.recordedEvents.map(e => ({
       time: e.getTimeDisplay(),
+      timestamp: e.getTime().toISOString(),
       eventName: e.getEventName(),
       emitterId: e.getEmitterId(),
     }));
