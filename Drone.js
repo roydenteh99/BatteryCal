@@ -64,7 +64,7 @@ export class Drone extends EventEmitter {
         
 
 
-        if(this.maxFlightDuration != null && this.flightTimeSinceCoolDown >= this.maxFlightDuration){
+        if(this.maxFlightDuration > 0 && this.flightTimeSinceCoolDown >= this.maxFlightDuration){
           const startCoolEvent = new Event (event.getTime(), this.id, Drone.EventName.START_COOL, Event.EventType.DRONE)
           return [startCoolEvent].concat(batteryEvent)
         } else {
