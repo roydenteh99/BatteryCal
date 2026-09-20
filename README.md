@@ -12,6 +12,21 @@ python -m http.server 8000
 
 Then open [http://localhost:8000](http://localhost:8000).
 
+## Publish with GitHub Pages
+
+This repository includes a GitHub Actions workflow at `.github/workflows/deploy-pages.yml`.
+
+1. Open the repository's **Settings** on GitHub.
+2. Select **Pages** under **Code and automation**.
+3. Set **Source** to **GitHub Actions**.
+4. Push the workflow and site files to the `master` branch, or run **Deploy BatteryCal to GitHub Pages** from the repository's **Actions** tab.
+
+After the workflow completes, the site will be available at:
+
+**https://roydenteh99.github.io/BatteryCal/**
+
+The workflow publishes the repository as a static site. Google Charts is loaded from Google's CDN, so the deployed page needs an internet connection for the timeline chart.
+
 The visualiser lets you configure:
 
 - Simulation start time and duration
