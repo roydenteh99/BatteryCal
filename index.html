@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BatteryCal sequence visualiser</title>
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17212b;
+      --muted: #607080;
+      --paper: #f5f7f2;
+      --panel: #ffffff;
+      --line: #d8e0db;
+      --accent: #176b63;
+      --accent-light: #dcefeb;
+      --warning: #9b4d16;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: linear-gradient(135deg, #edf5f0 0%, var(--paper) 55%, #f8eee4 100%);
+      font: 15px/1.45 Georgia, "Times New Roman", serif;
+    }
+    main { width: min(1180px, calc(100% - 32px)); margin: 32px auto 56px; }
+    h1, h2 { margin: 0; font-family: "Trebuchet MS", sans-serif; letter-spacing: 0; }
+    h1 { font-size: clamp(2rem, 5vw, 3.7rem); max-width: 680px; line-height: 1.02; }
+    h2 { font-size: 1.25rem; }
+    .intro { margin-bottom: 24px; }
+    .intro p { color: var(--muted); max-width: 680px; font-size: 1.05rem; }
+    .panel { background: rgba(255, 255, 255, .9); border: 1px solid var(--line); padding: 22px; margin-top: 18px; box-shadow: 0 14px 35px rgba(31, 55, 47, .08); }
+    .form-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+    fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+    legend { color: var(--accent); font: 700 1rem "Trebuchet MS", sans-serif; margin-bottom: 12px; }
+    label { display: block; color: var(--muted); font-size: .88rem; margin: 9px 0 4px; }
+    input { width: 100%; border: 1px solid #bdcbc4; padding: 9px 10px; color: var(--ink); background: #fbfdfb; font: inherit; }
+    input:focus { outline: 2px solid var(--accent-light); border-color: var(--accent); }
+    .actions { display: flex; align-items: center; gap: 14px; margin-top: 22px; }
+    button { border: 0; background: var(--accent); color: white; padding: 11px 18px; cursor: pointer; font: 700 .95rem "Trebuchet MS", sans-serif; }
+    button:hover { background: #0f514b; }
+    button.secondary { background: #4776a8; }
+    button.secondary:hover { background: #365d87; }
+    button:disabled { background: #aebbb5; cursor: not-allowed; }
+    #status { color: var(--muted); }
+    #status.error { color: var(--warning); }
+    #chart { min-height: 380px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th { color: var(--accent); font-family: "Trebuchet MS", sans-serif; }
+    .empty { color: var(--muted); }
+    @media (max-width: 850px) { .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 520px) { main { width: min(100% - 20px, 1180px); margin-top: 20px; } .panel { padding: 16px; } .form-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="intro">
+      <h1>Battery Resource Optimisation Simulation</h1>
+      <p> Set a quantity and configuration for drone/any battery consumers, battery and charger. See the results in the simulation chart.</p>
+    </section>
+
+    <form id="simulation-form" class="panel">
+      <div class="form-grid">
+        <fieldset>
+          <legend>Simulation</legend>
+          <label for="start-time">Start time</label>
+          <input id="start-time" type="datetime-local" value="2026-01-01T09:00">
+          <label for="duration">Duration (hours)</label>
+          <input id="duration" type="number" min="0.1" step="0.1" placeholder="3" data-default="3">
+        </fieldset>
+
+        <fieldset>
+          <legend>Batteries</legend>
+          <label for="battery-count">Quantity</label>
+          <input id="battery-count" type="number" min="0" step="1" placeholder="4" data-default="4">
+          <label for="max-flight-time">Max flight time (hours)</label>
+          <input id="max-flight-time" type="number" min="0.01" step="0.1" placeholder="1" data-default="1">
+          <label for="charge-time">Full charge time (hours)</label>
+          <input id="charge-time" type="number" min="0.01" step="0.1" placeholder="1" data-default="1">
+          <label for="charge-percent">Initial charge (%)</label>
+          <input id="charge-percent" type="number" min="0" max="100" step="1" placeholder="100" data-default="100">
+        </fieldset>
+
+        <fieldset>
+          <legend>Drones</legend>
+          <label for="drone-count">Quantity</label>
+          <input id="drone-count" type="number" min="0" step="1" placeholder="2" data-default="2">
+          <label for="cooldown">Cool down (hours) Set to 0 for no cool down </label>
+          <input id="cooldown" type="number" min="0" step="0.01" placeholder="0" data-default="0">
+          <label for="loading">Battery loading time (hours)</label>
+          <input id="loading" type="number" min="0" step="0.01" placeholder="0" data-default="0">
+          <label for="max-flight-duration">Cool after flight total (hours) Set to 0 for no cool down</label>
+          <input id="max-flight-duration" type="number" min="0" step="0.01" placeholder="0" data-default="0">
+        </fieldset>
+
+        <fieldset>
+          <legend>Chargers</legend>
+          <label for="charger-count">Quantity</label>
+          <input id="charger-count" type="number" min="0" step="1" placeholder="1" data-default="1">
+        </fieldset>
+      </div>
+      <div class="actions">
+        <button type="submit">Generate sequence</button>
+        <button id="copy-sheet" class="secondary" type="button" disabled>Copy for Google Sheets</button>
+        <span id="status" role="status">Ready to simulate.</span>
+      </div>
+    </form>
+
+    <section class="panel">
+      <h2>Activity timeline</h2>
+      <div id="chart" aria-label="Simulation activity timeline"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Event sequence</h2>
+      <div id="sequence" class="table-wrap"><p class="empty">Generate a sequence to see events.</p></div>
+    </section>
+  </main>
+
+  <script type="module">
+    // These imports keep the page connected to the project's actual simulation code.
+    import { EventQueue } from './QueueManager.js';
+    import { Battery } from './SimplerBattery.js';
+    import { Drone } from './Drone.js';
+    import { Charger } from './Charger.js';
+    import { EventSorter } from './EventSorter.js';
+
+    const form = document.querySelector('#simulation-form');
+    const status = document.querySelector('#status');
+    const sequence = document.querySelector('#sequence');
+    const copySheetButton = document.querySelector('#copy-sheet');
+    let sheetData = '';
+
+    // Blank numeric fields use the declared data-default value.
+    function numberValue(id) {
+      const input = document.querySelector(`#${id}`);
+      const value = input.value.trim() === '' ? input.dataset.default : input.value;
+      return Number(value);
+    }
+
+    function makeResources() {
+      const batteries = Array.from({ length: numberValue('battery-count') }, (_, index) => new Battery(`battery${index}`, {
+        maxFlightTime: numberValue('max-flight-time'),
+        chargeTime: numberValue('charge-time'),
+        chargePercent: numberValue('charge-percent')
+      }));
+      const drones = Array.from({ length: numberValue('drone-count') }, (_, index) => new Drone(`drone${index}`, {
+        coolDownTime: numberValue('cooldown'),
+        loadingBatteryDuration: numberValue('loading'),
+        maxFlightDuration: numberValue('max-flight-duration')
+      }));
+      const chargers = Array.from({ length: numberValue('charger-count') }, (_, index) => new Charger(`charger${index}`));
+      return { batteries, drones, chargers };
+    }
+
+    // Keep chart and table rows grouped in the same order as the resource types.
+    function resourceType(itemId) {
+      if (itemId.startsWith('drone')) return 'Drone';
+      if (itemId.startsWith('battery')) return 'Battery';
+      if (itemId.startsWith('charger')) return 'Charger';
+      return 'Other';
+    }
+
+    function groupedRows(rows) {
+      const typeOrder = { Drone: 0, Battery: 1, Charger: 2, Other: 3 };
+      return rows
+        .map(row => ({ row, type: resourceType(row[0]) }))
+        .sort((left, right) => typeOrder[left.type] - typeOrder[right.type] || left.row[0].localeCompare(right.row[0]) || left.row[2] - right.row[2]);
+    }
+
+    function renderTable(events) {
+      if (!events.length) {
+        sequence.innerHTML = '<p class="empty">No events were generated. Add at least one drone and battery.</p>';
+        return;
+      }
+      sequence.innerHTML = `<table><thead><tr><th>Time</th><th>Type</th><th>Resource</th><th>Event</th></tr></thead><tbody>${events.map(event => `
+        <tr><td>${event.time}</td><td>${resourceType(event.emitterId)}</td><td>${event.emitterId}</td><td>${event.eventName}</td></tr>`).join('')}</tbody></table>`;
+    }
+
+    function drawTimeline(rows, simulationEnd) {
+      const chartElement = document.querySelector('#chart');
+      if (!rows.length) {
+        chartElement.innerHTML = '<p class="empty">No paired activities were generated.</p>';
+        return;
+      }
+      const data = new google.visualization.DataTable();
+      data.addColumn({ type: 'string', id: 'Resource' });
+      data.addColumn({ type: 'string', id: 'Activity' });
+      data.addColumn({ type: 'date', id: 'Start' });
+      data.addColumn({ type: 'date', id: 'End' });
+      // Google Timeline needs an end date; an open activity ends at the simulation boundary.
+      data.addRows(groupedRows(rows).map(({ row: [itemId, eventName, startTime, endTime], type }) => [
+        `${type} / ${itemId}`, eventName, startTime, endTime || simulationEnd
+      ]));
+      new google.visualization.Timeline(chartElement).draw(data, {
+        timeline: { rowLabelStyle: { fontName: 'Trebuchet MS', fontSize: 13 }, barLabelStyle: { fontName: 'Georgia', fontSize: 12 } },
+        hAxis: { format: 'HH:mm' },
+        colors: ['#176b63', '#cf7335', '#4776a8', '#8a5a8b'],
+        avoidOverlappingGridLines: false
+      });
+    }
+
+    function sheetDate(value) {
+      return value ? value.toISOString() : '';
+    }
+
+    // Build TSV rather than CSV so pasted values land in separate Google Sheets columns.
+    function createSheetData(rows) {
+      const header = ['Type', 'Resource', 'Activity', 'Start', 'End'];
+      const dataRows = groupedRows(rows).map(({ row: [itemId, eventName, startTime, endTime], type }) => [
+        type,
+        itemId,
+        eventName,
+        sheetDate(startTime),
+        sheetDate(endTime)
+      ]);
+      return [header, ...dataRows].map(row => row.join('\t')).join('\n');
+    }
+
+    async function copySheetData() {
+      if (!sheetData) return;
+      try {
+        await navigator.clipboard.writeText(sheetData);
+      } catch (error) {
+        // The fallback supports browsers that block the Clipboard API outside HTTPS.
+        const copyArea = document.createElement('textarea');
+        copyArea.value = sheetData;
+        document.body.appendChild(copyArea);
+        copyArea.select();
+        document.execCommand('copy');
+        copyArea.remove();
+      }
+      status.className = '';
+      status.textContent = 'Copied. Paste into Google Sheets.';
+    }
+
+    function runSimulation() {
+      const startTime = new Date(document.querySelector('#start-time').value || '2026-01-01T09:00');
+      const simulationEnd = new Date(startTime.getTime() + numberValue('duration') * 60 * 60 * 1000);
+      const { batteries, drones, chargers } = makeResources();
+      const queue = new EventQueue(startTime, simulationEnd, drones, batteries, chargers);
+      queue.startWithDroneSourceBattEvent();
+      queue.startCycle();
+
+      const events = queue.getSequence();
+      const rows = new EventSorter().toSheetRows(queue.recordedEvents);
+      sheetData = createSheetData(rows);
+      copySheetButton.disabled = rows.length === 0;
+      renderTable(events);
+      drawTimeline(rows, simulationEnd);
+      status.className = '';
+      status.textContent = `${events.length} events generated across ${rows.length} activities.`;
+    }
+
+    // Google Charts loads asynchronously, so wait for it before the first draw.
+    google.charts.load('current', { packages: ['timeline'] });
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      try {
+        google.charts.setOnLoadCallback(runSimulation);
+      } catch (error) {
+        status.className = 'error';
+        status.textContent = error.message;
+      }
+    });
+    copySheetButton.addEventListener('click', copySheetData);
+  </script>
+</body>
+</html>
