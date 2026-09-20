@@ -10,7 +10,7 @@ export class Battery extends EventEmitter {
         this.chargeTime = chargeTime
         this.chargePercent = chargePercent
         this.timeOfLatestStartCharge = null
-        this.batteryState = Battery.State.READY
+        this.batteryState = chargePercent > 0 ? Battery.State.READY : Battery.State.FLAT
     }
     
     getMaxFlightTime() {

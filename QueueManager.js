@@ -99,14 +99,19 @@ export class EventQueue {
       return [];
     }
     // Find a fully charged battery first
-    const fullyChargedBattery = this.batteryList.find(battery => battery.getState() === 2);
+    const availableBattery = this.batteryList.find(battery =>
+      battery.getState() === Battery.State.READY && battery.getAvailFlightTime(this.currentTime) > 0
+    );
     // Calculate usable flight time after allowing for battery loading and unloading.
     const durationTillEndTime = this.endTime
       ? Math.max(0, getTimeDiffInHours(this.currentTime, this.endTime) - drone.getLoadingDuration() * 2)
       : Infinity;
     
-    if (fullyChargedBattery && fullyChargedBattery.maxFlightTime <= durationTillEndTime) {
-      return drone.createStartEvent(this.currentTime, {battery: fullyChargedBattery, duration: fullyChargedBattery.maxFlightTime});
+    if (availableBattery) {
+      const availableFlightTime = availableBattery.getAvailFlightTime(this.currentTime);
+      if (availableFlightTime <= durationTillEndTime) {
+        return drone.createStartEvent(this.currentTime, {battery: availableBattery, duration: availableFlightTime});
+      }
     } 
 
     const chargerWithSemiChargedBatt = this.chargerList.reduce((bestCharger, charger) => {
@@ -197,6 +202,12 @@ export class EventQueue {
     for (const drone of this.droneList) {
       const droneSourceBattEvent = drone.createSourceBatteryEvent(this.currentTime);
       this.events.push(droneSourceBattEvent);
+    }
+    // Start charging batteries configured at 0% so they can enter the simulation.
+    for (const battery of this.batteryList) {
+      if (battery.getState() === Battery.State.FLAT) {
+        this.events.push(new Event(this.currentTime, battery.getId(), Battery.EventName.BATT_SOURCE_CHARGER, Event.EventType.TRANSIT));
+      }
     }
   }
 

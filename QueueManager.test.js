@@ -181,5 +181,36 @@ test('EventQueue records the expected event sequence', () => {
     );
 });
 
+test('EventQueue uses initial battery charge when starting a flight', () => {
+    const battery = new Battery('battery-partial', {
+        maxFlightTime: 2,
+        chargeTime: 1,
+        chargePercent: 50
+    });
+    const drone = new Drone('drone-partial', { maxFlightDuration: 0 });
+    const queue = new EventQueue(
+        '2026-01-01 09:00',
+        '2026-01-01 11:00',
+        [drone],
+        [battery],
+        []
+    );
+
+    queue.startWithDroneSourceBattEvent();
+    queue.startCycle();
+
+    const flightEvents = queue.recordedEvents.filter(event =>
+        event.getEmitterId() === 'drone-partial' &&
+        (event.getEventName() === 'Start Flight' || event.getEventName() === 'End Flight')
+    );
+
+    assert.equal(flightEvents.length, 2);
+    assert.equal(
+        (flightEvents[1].getTime() - flightEvents[0].getTime()) / (1000 * 60 * 60),
+        1,
+        'A 50% battery should provide half of its two-hour flight time'
+    );
+});
+
 
 
