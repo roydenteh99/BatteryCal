@@ -2,6 +2,12 @@
 
 BatteryCal simulates batteries, drones, and chargers as an event-driven system. The browser visualiser runs the existing JavaScript simulation, groups activities by resource, and displays the result with Google Charts.
 
+**Live demo:** [Open BatteryCal](https://roydenteh99.github.io/BatteryCal/)
+
+## Why BatteryCal
+
+BatteryCal aims to be a first-of-its-kind practical visual simulation for coordinating limited batteries, drones(or representing a battery consumer), and onsite chargers in one event-driven model. It is particularly useful for complex operating cases where battery availability is constrained and charging onsite is the only workable solution. By making resource contention, charging cycles, flight time, cooldowns, and timing visible, it helps explore whether a proposed battery and charger setup can support the required operation.
+
 ## Run the visualiser
 
 The page uses ES modules, so serve the project through a local web server instead of opening `index.html` directly.
