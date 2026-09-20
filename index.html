@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BatteryCal sequence visualiser</title>
-  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <script async src="https://www.gstatic.com/charts/loader.js"></script>
   <style>
     :root {
       color-scheme: light;
@@ -134,6 +134,8 @@
     const sequence = document.querySelector('#sequence');
     const copySheetButton = document.querySelector('#copy-sheet');
     let sheetData = '';
+    let latestRows = [];
+    let latestSimulationEnd = null;
 
     // Blank numeric fields use the declared data-default value.
     function numberValue(id) {
@@ -185,6 +187,11 @@
       const chartElement = document.querySelector('#chart');
       if (!rows.length) {
         chartElement.innerHTML = '<p class="empty">No paired activities were generated.</p>';
+        return;
+      }
+      // Chart loading should not prevent the event table or Sheets export from working.
+      if (typeof google === 'undefined' || !google.visualization) {
+        chartElement.innerHTML = '<p class="empty">Timeline chart is still loading.</p>';
         return;
       }
       const data = new google.visualization.DataTable();
@@ -248,6 +255,8 @@
 
       const events = queue.getSequence();
       const rows = new EventSorter().toSheetRows(queue.recordedEvents);
+      latestRows = rows;
+      latestSimulationEnd = simulationEnd;
       sheetData = createSheetData(rows);
       copySheetButton.disabled = rows.length === 0;
       renderTable(events);
@@ -256,12 +265,17 @@
       status.textContent = `${events.length} events generated across ${rows.length} activities.`;
     }
 
-    // Google Charts loads asynchronously, so wait for it before the first draw.
-    google.charts.load('current', { packages: ['timeline'] });
+    // Google Charts is optional for the event table and Sheets export.
+    if (typeof google !== 'undefined' && google.charts) {
+      google.charts.load('current', { packages: ['timeline'] });
+      google.charts.setOnLoadCallback(() => {
+        if (latestRows.length) drawTimeline(latestRows, latestSimulationEnd);
+      });
+    }
     form.addEventListener('submit', event => {
       event.preventDefault();
       try {
-        google.charts.setOnLoadCallback(runSimulation);
+        runSimulation();
       } catch (error) {
         status.className = 'error';
         status.textContent = error.message;
