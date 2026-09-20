@@ -212,5 +212,23 @@ test('EventQueue uses initial battery charge when starting a flight', () => {
     );
 });
 
+test('EventQueue does not start a battery-driven flight beyond the cutoff', () => {
+    const battery = new Battery('battery-cutoff', {
+        maxFlightTime: 1,
+        chargeTime: 1,
+        chargePercent: 100
+    });
+    const drone = new Drone('drone-cutoff', { maxFlightDuration: 0 });
+    const queue = new EventQueue(
+        '2026-01-01 09:20',
+        '2026-01-01 09:30',
+        [drone],
+        [battery],
+        []
+    );
+
+    assert.deepEqual(queue.battSourceDrone(battery), []);
+});
+
 
 

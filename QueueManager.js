@@ -64,8 +64,17 @@ export class EventQueue {
       return [];
     }
 
-    if (drone) {
-      return drone.createStartEvent(this.currentTime, {battery, duration: battery.getAvailFlightTime(this.currentTime)});
+    if (!drone) {
+      return [];
+    }
+
+    const durationTillEndTime = this.endTime
+      ? Math.max(0, getTimeDiffInHours(this.currentTime, this.endTime) - drone.getLoadingDuration() * 2)
+      : Infinity;
+    const availableFlightTime = battery.getAvailFlightTime(this.currentTime);
+
+    if (availableFlightTime > 0 && availableFlightTime <= durationTillEndTime) {
+      return drone.createStartEvent(this.currentTime, {battery, duration: availableFlightTime});
     } else {
       // console.log("No available drone for battery", battery.getId(), "at time", this.currentTime);
       return [];
