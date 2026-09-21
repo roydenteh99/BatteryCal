@@ -1,16 +1,16 @@
 # BatteryCal
 
-BatteryCal simulates batteries, drones, and chargers as an event-driven system. The browser visualiser runs the existing JavaScript simulation, groups activities by resource, and displays the result with Google Charts.
+BatteryCal simulates batteries, drones/any battery consumer, and chargers as an event-driven system. The browser visualiser runs the existing JavaScript simulation, groups activities by resource, and displays the result with Google Charts.
 
-**Live demo:** [Open BatteryCal](https://roydenteh99.github.io/BatteryCal/)
+**Try it! :** [Open BatteryCal](https://roydenteh99.github.io/BatteryCal/)
 
 ## Why BatteryCal
 
 BatteryCal aims to be a first-of-its-kind practical visual simulation for coordinating limited batteries, drones(or representing a battery consumer), and onsite chargers in one event-driven model. It is particularly useful for complex operating cases where battery availability is constrained and charging onsite is the only workable solution. By making resource contention, charging cycles, flight time, cooldowns, and timing visible, it helps explore whether a proposed battery and charger setup can support the required operation.
 
 ## Run the visualiser
-
-The page uses ES modules, so serve the project through a local web server instead of opening `index.html` directly.
+If you wish to clone it and try it development on your own , do note that 
+the page uses ES modules, so serve the project through a local web server instead of opening `index.html` directly.
 
 ```powershell
 python -m http.server 8000
@@ -31,17 +31,11 @@ Blank numeric inputs use the defaults shown by the form. After generating a sequ
 Type    Resource    Activity    Start    End
 ```
 
-## Visualization notes
-
-### Zero-second cooldown still appears
-
-A drone can still produce `Start Cool` and `End Cool` events when its cooldown value is `0`. Those events occur at the same timestamp and may appear as a tiny or difficult-to-see activity in the Google Timeline.
-
-This is a visualization limitation, not a timing error. The event queue processes the zero-duration cooldown in the correct order, and the drone becomes available according to the existing state transitions.
+## Visualization notes (ie bugs to resolve)
 
 ### Loading and unloading are not separate bars
 
-Battery loading and unloading durations are accounted for in the simulation, but they are not emitted as standalone `Loading` or `Unloading` events. As a result, the chart does not show a separate bar for those operations.
+Battery loading and unloading durations are accounted for in the simulation, but they are not emitted as standalone `Loading` or `Unloading` events. As a result, the chart does not show a separate bar for those operations instead they are just blank space.
 
 The timing is still included through the surrounding events:
 
@@ -57,6 +51,11 @@ Therefore, the visible event labels do not show every physical operation, but th
 - `EventSorter.js` pairs start and end events for timeline rows.
 - `index.html` provides the browser controls, Google Timeline, event table, and Sheets export.
 
+
+## Note for potential user / developer
+- I encourage the free use of this web app if is not apparent yet in the fact it is a public respository.
+- If you find any bug feel free to tell me or even better yet, debugged it and send a pull request.
+- If you made major improvement to my web app after deciphering my spaghetti code, do share too.
 The event-driven implementation is covered by the Node test suite:
 
 ```powershell
